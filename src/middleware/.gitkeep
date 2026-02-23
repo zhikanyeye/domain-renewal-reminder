@@ -1,0 +1,2 @@
+# Middleware directory
+# Authentication, rate limiting, and other middleware will be implemented here

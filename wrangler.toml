@@ -1,0 +1,36 @@
+name = "domain-renewal-reminder"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+node_compat = true
+
+# Environment variables (set these in Cloudflare dashboard or via wrangler secret)
+# ADMIN_PASSWORD - Admin panel password
+# ENCRYPTION_KEY - Key for encrypting sensitive data (32 bytes hex)
+
+# D1 Database binding
+[[d1_databases]]
+binding = "DB"
+database_name = "domain_renewal_db"
+database_id = "placeholder" # Will be replaced after creating the database
+
+# KV namespace bindings
+[[kv_namespaces]]
+binding = "KV"
+id = "placeholder" # Will be replaced after creating the KV namespace
+
+# Cron trigger for daily reminder checks (runs at 00:00 UTC daily)
+[triggers]
+crons = ["0 0 * * *"]
+
+# Development configuration
+[env.dev]
+name = "domain-renewal-reminder-dev"
+
+[[env.dev.d1_databases]]
+binding = "DB"
+database_name = "domain_renewal_db_dev"
+database_id = "placeholder"
+
+[[env.dev.kv_namespaces]]
+binding = "KV"
+id = "placeholder"

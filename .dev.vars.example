@@ -1,0 +1,9 @@
+# Example environment variables for local development
+# Copy this file to .dev.vars and fill in your actual values
+
+# Admin panel password
+ADMIN_PASSWORD=change_me_to_secure_password
+
+# Encryption key for sensitive data (32 bytes in hex format)
+# Generate using: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
