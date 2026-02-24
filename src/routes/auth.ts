@@ -56,7 +56,7 @@ auth.post('/register', async (c) => {
         const emailService = new EmailService(smtpConfigResult.data);
         
         const token = result.data.verificationToken;
-        const baseUrl = new URL(c.req.url).origin;
+        const baseUrl = c.env.FRONTEND_URL || new URL(c.req.url).origin;
         
         const { subject, body } = emailService.composeVerificationEmail(email, token, baseUrl);
         
@@ -66,6 +66,7 @@ auth.post('/register', async (c) => {
           smtpProvider: smtpConfigResult.data.provider,
           smtpHost: smtpConfigResult.data.host,
           smtpPort: smtpConfigResult.data.port,
+          frontendUrl: baseUrl,
         });
         
         const emailResult = await emailService.sendEmail(email, subject, body);
@@ -303,7 +304,7 @@ auth.post('/resend-verification', async (c) => {
         const emailService = new EmailService(smtpConfigResult.data);
         
         const token = result.data.verificationToken;
-        const baseUrl = new URL(c.req.url).origin;
+        const baseUrl = c.env.FRONTEND_URL || new URL(c.req.url).origin;
         
         const { subject, body } = emailService.composeVerificationEmail(email, token, baseUrl);
         
@@ -311,6 +312,7 @@ auth.post('/resend-verification', async (c) => {
           to: email,
           subject,
           smtpProvider: smtpConfigResult.data.provider,
+          frontendUrl: baseUrl,
         });
         
         const emailResult = await emailService.sendEmail(email, subject, body);

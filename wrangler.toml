@@ -12,6 +12,7 @@ fallthrough = true
 # Environment variables (set these in Cloudflare dashboard or via wrangler secret)
 # ADMIN_PASSWORD - Admin panel password
 # ENCRYPTION_KEY - Key for encrypting sensitive data (32 bytes hex)
+# FRONTEND_URL - Frontend URL for email verification links (e.g., https://new.zhiye.de5.net)
 
 # D1 Database binding
 [[d1_databases]]
