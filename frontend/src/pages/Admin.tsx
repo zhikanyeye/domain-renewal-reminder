@@ -9,9 +9,9 @@ import { apiClient } from '../api/client';
 interface User {
   id: string;
   email: string;
-  isVerified: boolean;
-  isBlacklisted: boolean;
-  createdAt: number;
+  is_verified: number; // SQLite uses INTEGER for boolean (0 or 1)
+  is_blacklisted: number; // SQLite uses INTEGER for boolean (0 or 1)
+  created_at: number;
   domainCount: number;
 }
 
@@ -424,7 +424,7 @@ function UsersTab({ users, loading, currentPage, totalPages, onPageChange, onBla
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.email}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex gap-2">
-                    {user.isVerified ? (
+                    {user.is_verified ? (
                       <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                         已验证
                       </span>
@@ -433,19 +433,19 @@ function UsersTab({ users, loading, currentPage, totalPages, onPageChange, onBla
                         未验证
                       </span>
                     )}
-                    {user.isBlacklisted && (
+                    {user.is_blacklisted ? (
                       <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
                         已拉黑
                       </span>
-                    )}
+                    ) : null}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{user.domainCount || 0}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {new Date(user.createdAt * 1000).toLocaleDateString('zh-CN')}
+                  {new Date(user.created_at * 1000).toLocaleDateString('zh-CN')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  {!user.isBlacklisted && (
+                  {!user.is_blacklisted && (
                     <button
                       onClick={() => onBlacklist(user.id)}
                       className="text-orange-600 hover:text-orange-900 mr-4"
