@@ -12,6 +12,53 @@ const domains = new Hono();
 domains.use('*', requireAuth);
 
 /**
+ * POST /domains/batch
+ * Batch add multiple domains
+ */
+domains.post('/batch', async (c) => {
+  try {
+    const userId = c.get('userId') as string;
+    const inputs = await c.req.json();
+
+    if (!Array.isArray(inputs)) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            code: 'INVALID_INPUT',
+            message: 'Expected an array of domain inputs',
+          },
+        },
+        400
+      );
+    }
+
+    // Convert date strings to Date objects
+    const processedInputs = inputs.map((input) => ({
+      ...input,
+      registrationDate: input.registrationDate ? new Date(input.registrationDate) : undefined,
+    }));
+
+    const domainService = new DomainService(c.env.DB as D1Database);
+    const result = await domainService.batchAddDomains(userId, processedInputs);
+
+    return c.json(result, result.success ? 201 : 400);
+  } catch (error) {
+    console.error('Batch add domains route error:', error);
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'An error occurred while batch adding domains',
+        },
+      },
+      500
+    );
+  }
+});
+
+/**
  * POST /domains
  * Add a new domain
  */

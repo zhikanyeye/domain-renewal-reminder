@@ -890,29 +890,27 @@ mydomain.net,https://registrar.com/renew,2023-06-15,2,60,admin@domain.net,5`;
       const text = await file.text();
       const domains = parseCSV(text);
 
-      let successCount = 0;
-      let failedCount = 0;
-      const errors: string[] = [];
-
-      for (const domain of domains) {
-        try {
-          const response = await apiClient.addDomain(domain);
-          if (response.success) {
-            successCount++;
-          } else {
-            failedCount++;
-            errors.push(`${domain.domainAddress}: ${response.error?.message || '添加失败'}`);
-          }
-        } catch (err) {
-          failedCount++;
-          errors.push(`${domain.domainAddress}: 网络错误`);
-        }
-      }
-
-      setResult({ success: successCount, failed: failedCount, errors });
+      // Use batch API
+      const response = await apiClient.batchAddDomains(domains);
       
-      if (successCount > 0) {
-        onSuccess();
+      if (response.success && response.data) {
+        const data = response.data as { 
+          successCount: number; 
+          failedCount: number; 
+          errors: Array<{ index: number; domain: string; error: string }> 
+        };
+        const errorMessages = data.errors.map((e: { domain: string; error: string }) => `${e.domain}: ${e.error}`);
+        setResult({ 
+          success: data.successCount, 
+          failed: data.failedCount, 
+          errors: errorMessages 
+        });
+        
+        if (data.successCount > 0) {
+          onSuccess();
+        }
+      } else {
+        setError(response.error?.message || '批量导入失败');
       }
     } catch (err: any) {
       setError(err.message || '文件解析失败');

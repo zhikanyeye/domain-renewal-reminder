@@ -155,6 +155,21 @@ class ApiClient {
     });
   }
 
+  async batchAddDomains(domains: Array<{
+    domainAddress: string;
+    renewalUrl: string;
+    registrationDate: string;
+    usagePeriodYears: number;
+    reminderDaysOffset: number;
+    reminderEmail: string;
+    reminderCount: number;
+  }>) {
+    return this.request('/domains/batch', {
+      method: 'POST',
+      body: JSON.stringify(domains),
+    });
+  }
+
   async updateDomain(id: string, updates: any) {
     return this.request(`/domains/${id}`, {
       method: 'PUT',
