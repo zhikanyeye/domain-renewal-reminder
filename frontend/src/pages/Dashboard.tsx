@@ -28,6 +28,12 @@ export function Dashboard() {
   const [editingDomain, setEditingDomain] = useState<Domain | null>(null);
   const [deletingDomain, setDeletingDomain] = useState<Domain | null>(null);
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalDomains, setTotalDomains] = useState(0);
+  const [pageSize] = useState(20);
+  
   // Filter states
   const [filterRenewalUrl, setFilterRenewalUrl] = useState<string>('');
   const [filterUsagePeriod, setFilterUsagePeriod] = useState<number | ''>('');
@@ -39,7 +45,7 @@ export function Dashboard() {
 
   useEffect(() => {
     loadDomains();
-  }, [filterRenewalUrl, filterUsagePeriod, filterReminderCount]);
+  }, [filterRenewalUrl, filterUsagePeriod, filterReminderCount, currentPage]);
 
   const loadDomains = async () => {
     setLoading(true);
@@ -49,9 +55,12 @@ export function Dashboard() {
       if (filterUsagePeriod) filters.usagePeriodYears = filterUsagePeriod;
       if (filterReminderCount) filters.reminderCount = filterReminderCount;
       
-      const response = await apiClient.getDomains(filters);
+      const response = await apiClient.getDomains(filters, currentPage, pageSize);
       if (response.success && response.data) {
-        setDomains(response.data as Domain[]);
+        const data = response.data as any;
+        setDomains(data.domains || []);
+        setTotalDomains(data.total || 0);
+        setTotalPages(data.totalPages || 1);
       }
     } catch (error) {
       console.error('Failed to load domains:', error);
@@ -80,6 +89,7 @@ export function Dashboard() {
     setFilterUsagePeriod('');
     setFilterReminderCount('');
     setSearchQuery('');
+    setCurrentPage(1);
   };
 
   // Filter domains based on search query
@@ -150,7 +160,7 @@ export function Dashboard() {
             </div>
             <div className="text-xs sm:text-sm font-semibold text-gray-600 mb-1">总域名数</div>
             <div className="text-3xl sm:text-4xl font-bold text-gray-800">
-              {domains.length}
+              {totalDomains}
             </div>
           </div>
           
@@ -404,6 +414,75 @@ export function Dashboard() {
             getDaysUntilExpiry={getDaysUntilExpiry}
             formatDate={formatDate}
           />
+        )}
+
+        {/* Pagination */}
+        {!loading && filteredDomains.length > 0 && totalPages > 1 && (
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-sm text-gray-600">
+              显示第 {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, totalDomains)} 条，共 {totalDomains} 条
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                首页
+              </button>
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                上一页
+              </button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`px-3 py-2 text-sm font-medium rounded-lg transition-all ${
+                        currentPage === pageNum
+                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg'
+                          : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                下一页
+              </button>
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                末页
+              </button>
+            </div>
+          </div>
         )}
       </main>
 

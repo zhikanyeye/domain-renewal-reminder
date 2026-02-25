@@ -126,11 +126,13 @@ class ApiClient {
     renewalUrl?: string;
     usagePeriodYears?: number;
     reminderCount?: number;
-  }) {
+  }, page: number = 1, pageSize: number = 20) {
     const params = new URLSearchParams();
     if (filters?.renewalUrl) params.append('renewalUrl', filters.renewalUrl);
     if (filters?.usagePeriodYears) params.append('usagePeriodYears', filters.usagePeriodYears.toString());
     if (filters?.reminderCount) params.append('reminderCount', filters.reminderCount.toString());
+    params.append('page', page.toString());
+    params.append('pageSize', pageSize.toString());
 
     const query = params.toString();
     return this.request(`/domains${query ? `?${query}` : ''}`);

@@ -93,7 +93,7 @@ domains.post('/', async (c) => {
 
 /**
  * GET /domains
- * Get user's domains with optional filters
+ * Get user's domains with optional filters and pagination
  */
 domains.get('/', async (c) => {
   try {
@@ -101,6 +101,8 @@ domains.get('/', async (c) => {
     const renewalUrl = c.req.query('renewalUrl');
     const usagePeriodYears = c.req.query('usagePeriodYears');
     const reminderCount = c.req.query('reminderCount');
+    const page = parseInt(c.req.query('page') || '1', 10);
+    const pageSize = parseInt(c.req.query('pageSize') || '20', 10);
 
     const filters: any = {};
     if (renewalUrl) filters.renewalUrl = renewalUrl;
@@ -108,7 +110,7 @@ domains.get('/', async (c) => {
     if (reminderCount) filters.reminderCount = parseInt(reminderCount, 10);
 
     const domainService = new DomainService(c.env.DB as D1Database);
-    const result = await domainService.getUserDomains(userId, filters);
+    const result = await domainService.getUserDomains(userId, filters, page, pageSize);
 
     return c.json(result, result.success ? 200 : 500);
   } catch (error) {

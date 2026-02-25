@@ -390,35 +390,72 @@ export class DomainService {
   }
 
   /**
-   * Get user's domains with optional filters
+   * Get user's domains with optional filters and pagination
    */
-  async getUserDomains(userId: string, filters?: DomainFilters): Promise<ApiResponse<Domain[]>> {
+  async getUserDomains(
+    userId: string, 
+    filters?: DomainFilters,
+    page: number = 1,
+    pageSize: number = 20
+  ): Promise<ApiResponse<{
+    domains: Domain[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+  }>> {
     try {
+      let countQuery = 'SELECT COUNT(*) as count FROM domains WHERE user_id = ?';
       let query = 'SELECT * FROM domains WHERE user_id = ?';
       const params: any[] = [userId];
+      const countParams: any[] = [userId];
 
       if (filters?.renewalUrl) {
         query += ' AND renewal_url = ?';
+        countQuery += ' AND renewal_url = ?';
         params.push(filters.renewalUrl);
+        countParams.push(filters.renewalUrl);
       }
 
       if (filters?.usagePeriodYears) {
         query += ' AND usage_period_years = ?';
+        countQuery += ' AND usage_period_years = ?';
         params.push(filters.usagePeriodYears);
+        countParams.push(filters.usagePeriodYears);
       }
 
       if (filters?.reminderCount) {
         query += ' AND reminder_count = ?';
+        countQuery += ' AND reminder_count = ?';
         params.push(filters.reminderCount);
+        countParams.push(filters.reminderCount);
       }
 
-      query += ' ORDER BY expiry_date ASC';
+      // Get total count
+      const countResult = await this.db
+        .prepare(countQuery)
+        .bind(...countParams)
+        .first<{ count: number }>();
+
+      const total = countResult?.count || 0;
+      const totalPages = Math.ceil(total / pageSize);
+
+      // Get paginated results
+      query += ' ORDER BY expiry_date ASC LIMIT ? OFFSET ?';
+      const offset = (page - 1) * pageSize;
+      params.push(pageSize, offset);
 
       const result = await this.db.prepare(query).bind(...params).all();
 
       return {
         success: true,
-        data: result.results as Domain[],
+        data: {
+          domains: result.results as Domain[],
+          total,
+          page,
+          pageSize,
+          totalPages,
+        },
       };
     } catch (error) {
       console.error('Get domains error:', error);
