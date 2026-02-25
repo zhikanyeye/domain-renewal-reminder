@@ -24,6 +24,7 @@ export function Dashboard() {
   const [domains, setDomains] = useState<Domain[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showBatchImportModal, setShowBatchImportModal] = useState(false);
   const [editingDomain, setEditingDomain] = useState<Domain | null>(null);
   const [deletingDomain, setDeletingDomain] = useState<Domain | null>(null);
   
@@ -171,17 +172,28 @@ export function Dashboard() {
         </div>
 
         {/* Actions */}
-        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0">
+        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900">我的域名</h2>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="w-full sm:w-auto px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm sm:text-base"
-          >
-            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            添加域名
-          </button>
+          <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2 text-sm sm:text-base"
+            >
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              添加域名
+            </button>
+            <button
+              onClick={() => setShowBatchImportModal(true)}
+              className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 border-2 border-indigo-600 text-indigo-600 rounded-xl font-semibold hover:bg-indigo-50 transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center gap-2 text-sm sm:text-base"
+            >
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              批量导入
+            </button>
+          </div>
         </div>
 
         {/* Filters and View Mode */}
@@ -329,6 +341,9 @@ export function Dashboard() {
 
       {/* Add Domain Modal */}
       {showAddModal && <AddDomainModal onClose={() => setShowAddModal(false)} onSuccess={loadDomains} />}
+
+      {/* Batch Import Modal */}
+      {showBatchImportModal && <BatchImportModal onClose={() => setShowBatchImportModal(false)} onSuccess={loadDomains} />}
 
       {/* Edit Domain Modal */}
       {editingDomain && (
@@ -783,6 +798,287 @@ function AddDomainModal({ onClose, onSuccess }: AddDomainModalProps) {
             >
               {loading ? '添加中...' : '添加域名'}
             </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Batch Import Modal Component
+ */
+interface BatchImportModalProps {
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function BatchImportModal({ onClose, onSuccess }: BatchImportModalProps) {
+  const [file, setFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [result, setResult] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
+
+  const downloadTemplate = () => {
+    const template = `域名地址,续期网址,注册日期,使用期限(年),提前提醒天数,提醒邮箱,提醒次数
+example.com,https://example.com/renew,2024-01-01,1,30,your@email.com,3
+mydomain.net,https://registrar.com/renew,2023-06-15,2,60,admin@domain.net,5`;
+
+    const blob = new Blob(['\ufeff' + template], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = '域名批量导入模板.csv';
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      if (!selectedFile.name.endsWith('.csv')) {
+        setError('请选择 CSV 文件');
+        return;
+      }
+      setFile(selectedFile);
+      setError('');
+      setResult(null);
+    }
+  };
+
+  const parseCSV = (text: string): any[] => {
+    const lines = text.split('\n').filter(line => line.trim());
+    if (lines.length < 2) {
+      throw new Error('CSV 文件格式错误：至少需要标题行和一行数据');
+    }
+
+    const domains: any[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+
+      const values = line.split(',').map(v => v.trim());
+      if (values.length < 7) {
+        throw new Error(`第 ${i + 1} 行数据不完整`);
+      }
+
+      domains.push({
+        domainAddress: values[0],
+        renewalUrl: values[1],
+        registrationDate: values[2],
+        usagePeriodYears: parseInt(values[3]),
+        reminderDaysOffset: parseInt(values[4]),
+        reminderEmail: values[5],
+        reminderCount: parseInt(values[6]),
+      });
+    }
+
+    return domains;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!file) {
+      setError('请选择文件');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setResult(null);
+
+    try {
+      const text = await file.text();
+      const domains = parseCSV(text);
+
+      let successCount = 0;
+      let failedCount = 0;
+      const errors: string[] = [];
+
+      for (const domain of domains) {
+        try {
+          const response = await apiClient.addDomain(domain);
+          if (response.success) {
+            successCount++;
+          } else {
+            failedCount++;
+            errors.push(`${domain.domainAddress}: ${response.error?.message || '添加失败'}`);
+          }
+        } catch (err) {
+          failedCount++;
+          errors.push(`${domain.domainAddress}: 网络错误`);
+        }
+      }
+
+      setResult({ success: successCount, failed: failedCount, errors });
+      
+      if (successCount > 0) {
+        onSuccess();
+      }
+    } catch (err: any) {
+      setError(err.message || '文件解析失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+      <div className="glass-card rounded-xl sm:rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-slideUp">
+        <div className="sticky top-0 bg-gradient-to-r from-indigo-600 to-purple-600 px-4 sm:px-6 py-4 sm:py-5 flex justify-between items-center rounded-t-xl sm:rounded-t-2xl">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 backdrop-blur-sm rounded-lg sm:rounded-xl flex items-center justify-center">
+              <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+            </div>
+            <h3 className="text-lg sm:text-xl font-bold text-white">批量导入域名</h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-white/80 hover:text-white hover:bg-white/20 rounded-lg p-2 transition-all duration-200"
+          >
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5">
+          {/* Instructions */}
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-bold text-gray-900 mb-2">使用说明</h4>
+                <ol className="text-xs sm:text-sm text-gray-700 space-y-1.5 list-decimal list-inside">
+                  <li>点击下方按钮下载 CSV 模板文件</li>
+                  <li>使用 Excel 或文本编辑器打开模板</li>
+                  <li>按照模板格式填写域名信息（不要修改标题行）</li>
+                  <li>保存为 CSV 格式（UTF-8 编码）</li>
+                  <li>上传填好的文件进行批量导入</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+
+          {/* Download Template Button */}
+          <button
+            type="button"
+            onClick={downloadTemplate}
+            className="w-full px-4 py-3 bg-white border-2 border-indigo-300 text-indigo-600 rounded-xl font-semibold hover:bg-indigo-50 transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            下载 CSV 模板
+          </button>
+
+          {/* File Upload */}
+          <div>
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-2">
+              选择 CSV 文件
+            </label>
+            <div className="relative">
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleFileChange}
+                className="hidden"
+                id="csv-upload"
+              />
+              <label
+                htmlFor="csv-upload"
+                className="flex items-center justify-center w-full px-4 py-8 border-2 border-dashed border-gray-300 rounded-xl hover:border-indigo-400 hover:bg-indigo-50/30 transition-all cursor-pointer"
+              >
+                <div className="text-center">
+                  <svg className="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <p className="text-sm font-medium text-gray-700">
+                    {file ? file.name : '点击选择文件或拖拽到此处'}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">支持 CSV 格式</p>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50/80 backdrop-blur-sm border-l-4 border-red-500 text-red-700 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg flex items-start gap-2 sm:gap-3 text-sm">
+              <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Result Summary */}
+          {result && (
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-4 sm:p-5">
+              <h4 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                导入完成
+              </h4>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="bg-white/60 rounded-lg p-3">
+                  <div className="text-2xl font-bold text-green-600">{result.success}</div>
+                  <div className="text-xs text-gray-600">成功导入</div>
+                </div>
+                <div className="bg-white/60 rounded-lg p-3">
+                  <div className="text-2xl font-bold text-red-600">{result.failed}</div>
+                  <div className="text-xs text-gray-600">导入失败</div>
+                </div>
+              </div>
+              {result.errors.length > 0 && (
+                <div className="mt-3">
+                  <div className="text-xs font-semibold text-gray-700 mb-2">失败详情：</div>
+                  <div className="bg-white/60 rounded-lg p-3 max-h-32 overflow-y-auto">
+                    {result.errors.map((err, idx) => (
+                      <div key={idx} className="text-xs text-red-600 mb-1">{err}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2.5 sm:py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-all font-semibold text-sm"
+            >
+              {result ? '关闭' : '取消'}
+            </button>
+            {!result && (
+              <button
+                type="submit"
+                disabled={loading || !file}
+                className="flex-1 px-4 py-2.5 sm:py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl text-sm flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>导入中...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    <span>开始导入</span>
+                  </>
+                )}
+              </button>
+            )}
           </div>
         </form>
       </div>
