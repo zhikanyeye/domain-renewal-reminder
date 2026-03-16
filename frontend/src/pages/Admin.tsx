@@ -2,7 +2,7 @@
  * Admin Panel Page
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
 
@@ -23,6 +23,11 @@ interface AdminLog {
   timestamp: number;
 }
 
+interface UsersResponse {
+  users: User[];
+  total: number;
+}
+
 interface SmtpConfig {
   provider: 'http-api' | 'smtp';
   host: string;
@@ -33,6 +38,8 @@ interface SmtpConfig {
   apiType?: 'resend' | 'sendgrid' | 'mailgun' | 'custom';
   apiKey?: string;
   mailgunDomain?: string;
+  hasPassword?: boolean;
+  hasApiKey?: boolean;
 }
 
 export function Admin() {
@@ -55,10 +62,12 @@ export function Admin() {
     port: 443,
     username: '',
     fromEmail: '',
-    fromName: '爱自由域名管理',
+    fromName: 'Domain Renewal Reminder',
     apiType: 'resend',
     apiKey: '',
     mailgunDomain: '',
+    hasPassword: false,
+    hasApiKey: false,
   });
   const [smtpPassword, setSmtpPassword] = useState('');
   const [smtpLoading, setSmtpLoading] = useState(false);
@@ -84,7 +93,7 @@ export function Admin() {
         setAuthError('密码错误');
         sessionStorage.removeItem('adminPassword');
       }
-    } catch (error) {
+    } catch {
       setAuthError('验证失败，请重试');
       sessionStorage.removeItem('adminPassword');
     }
@@ -99,46 +108,38 @@ export function Admin() {
     }
   }, []);
 
-  useEffect(() => {
-    if (authenticated && activeTab === 'users') {
-      loadUsers();
-    } else if (authenticated && activeTab === 'smtp') {
-      loadSmtpConfig();
-    } else if (authenticated && activeTab === 'logs') {
-      loadLogs();
-    }
-  }, [authenticated, activeTab, currentPage]);
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setUsersLoading(true);
     try {
       const response = await apiClient.getUsers(currentPage, 20);
       if (response.success && response.data) {
-        setUsers((response.data as any).users || []);
-        setTotalPages(Math.ceil(((response.data as any).total || 0) / 20));
+        const data = response.data as UsersResponse;
+        setUsers(data.users || []);
+        setTotalPages(Math.ceil((data.total || 0) / 20));
       }
     } catch (error) {
       console.error('Failed to load users:', error);
     } finally {
       setUsersLoading(false);
     }
-  };
+  }, [currentPage]);
 
-  const loadSmtpConfig = async () => {
+  const loadSmtpConfig = useCallback(async () => {
     setSmtpLoading(true);
     try {
       const response = await apiClient.getSmtpConfig();
       if (response.success && response.data) {
         setSmtpConfig(response.data as SmtpConfig);
+        setSmtpPassword('');
       }
     } catch (error) {
       console.error('Failed to load SMTP config:', error);
     } finally {
       setSmtpLoading(false);
     }
-  };
+  }, []);
 
-  const loadLogs = async () => {
+  const loadLogs = useCallback(async () => {
     setLogsLoading(true);
     try {
       const response = await apiClient.getAdminLogs(100);
@@ -150,7 +151,17 @@ export function Admin() {
     } finally {
       setLogsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (authenticated && activeTab === 'users') {
+      void loadUsers();
+    } else if (authenticated && activeTab === 'smtp') {
+      void loadSmtpConfig();
+    } else if (authenticated && activeTab === 'logs') {
+      void loadLogs();
+    }
+  }, [authenticated, activeTab, currentPage, loadLogs, loadSmtpConfig, loadUsers]);
 
   const handleBlacklistUser = async (userId: string) => {
     const reason = prompt('请输入拉黑原因：');
@@ -164,7 +175,7 @@ export function Admin() {
       } else {
         alert('操作失败：' + response.error?.message);
       }
-    } catch (error) {
+    } catch {
       alert('操作失败');
     }
   };
@@ -180,7 +191,7 @@ export function Admin() {
       } else {
         alert('操作失败：' + response.error?.message);
       }
-    } catch (error) {
+    } catch {
       alert('操作失败');
     }
   };
@@ -191,19 +202,35 @@ export function Admin() {
     setSmtpMessage('');
 
     try {
-      const response = await apiClient.updateSmtpConfig({
+      const configPayload = {
         ...smtpConfig,
-        password: smtpPassword,
-      });
+      };
+      delete configPayload.hasPassword;
+      delete configPayload.hasApiKey;
+      const nextPassword = smtpPassword.trim();
+      const response = await apiClient.updateSmtpConfig(
+        nextPassword
+          ? {
+              ...configPayload,
+              password: nextPassword,
+            }
+          : configPayload
+      );
 
       if (response.success) {
-        setSmtpMessage('SMTP 配置已保存');
+        setSmtpConfig((current) => ({
+          ...current,
+          hasPassword: current.hasPassword || Boolean(nextPassword),
+          hasApiKey:
+            current.hasApiKey || (current.provider === 'http-api' && Boolean(nextPassword)),
+        }));
+        setSmtpMessage('SMTP configuration saved successfully');
         setSmtpPassword('');
       } else {
-        setSmtpMessage('保存失败：' + response.error?.message);
+        setSmtpMessage(`Save failed: ${response.error?.message || 'Unknown error'}`);
       }
-    } catch (error) {
-      setSmtpMessage('保存失败');
+    } catch {
+      setSmtpMessage('Save failed');
     } finally {
       setSmtpLoading(false);
     }
@@ -623,18 +650,19 @@ interface SmtpTabProps {
 
 function SmtpTab({ config, password, loading, message, onConfigChange, onPasswordChange, onSave }: SmtpTabProps) {
   const isHttpApi = config.provider === 'http-api';
+  const isSuccessMessage = message.toLowerCase().includes('success');
 
   return (
     <form onSubmit={onSave} className="space-y-6 max-w-4xl">
       {message && (
         <div className={`px-4 py-3 rounded-xl animate-slideDown ${
-          message.includes('成功') || message.includes('已保存')
+          isSuccessMessage
             ? 'bg-green-50/80 border-l-4 border-green-500 text-green-700'
             : 'bg-red-50/80 border-l-4 border-red-500 text-red-700'
         }`}>
           <div className="flex items-start gap-3">
             <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              {message.includes('成功') || message.includes('已保存') ? (
+              {isSuccessMessage ? (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               ) : (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -751,7 +779,7 @@ function SmtpTab({ config, password, loading, message, onConfigChange, onPasswor
               value={config.apiType || 'resend'}
               onChange={(e) => onConfigChange({ 
                 ...config, 
-                apiType: e.target.value as any,
+                apiType: e.target.value as SmtpConfig['apiType'],
                 host: e.target.value === 'resend' ? 'api.resend.com' :
                       e.target.value === 'sendgrid' ? 'api.sendgrid.com' :
                       e.target.value === 'mailgun' ? 'api.mailgun.net' : '',
@@ -912,14 +940,14 @@ function SmtpTab({ config, password, loading, message, onConfigChange, onPasswor
 
         <div>
           <label className="block text-sm font-bold text-gray-900 mb-2.5">发件人名称</label>
-          <input
-            type="text"
-            value={config.fromName}
-            onChange={(e) => onConfigChange({ ...config, fromName: e.target.value })}
-            required
-            className="w-full px-4 py-3 text-sm border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all bg-white/50 backdrop-blur-sm font-medium"
-            placeholder="爱自由域名管理"
-          />
+            <input
+              type="text"
+              value={config.fromName}
+              onChange={(e) => onConfigChange({ ...config, fromName: e.target.value })}
+              required
+              className="w-full px-4 py-3 text-sm border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all bg-white/50 backdrop-blur-sm font-medium"
+              placeholder="Domain Renewal Reminder"
+            />
         </div>
       </div>
 

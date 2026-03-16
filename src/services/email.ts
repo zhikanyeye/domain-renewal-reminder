@@ -205,7 +205,7 @@ export class EmailService {
       });
 
       // Import Cloudflare Workers TCP Socket API
-      // @ts-ignore - Cloudflare Workers specific API
+      // @ts-expect-error - Cloudflare Workers specific API
       const { connect } = await import('cloudflare:sockets');
 
       const socket = connect({

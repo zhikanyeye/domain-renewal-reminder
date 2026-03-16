@@ -3,7 +3,14 @@
  * Handles admin operations like user management and SMTP configuration
  */
 
-import { User, SmtpConfig, ApiResponse, AdminLog } from '../types';
+import {
+  User,
+  SmtpConfig,
+  SmtpConfigUpdate,
+  SmtpConfigSummary,
+  ApiResponse,
+  AdminLog,
+} from '../types';
 import { validateSmtpConfig } from '../utils/validation';
 import { encrypt, decrypt } from '../utils/crypto';
 
@@ -13,6 +20,31 @@ export class AdminService {
     private kv: KVNamespace,
     private encryptionKey: string
   ) {}
+
+  private async getStoredSmtpConfig(): Promise<(Omit<SmtpConfig, 'password' | 'apiKey'> & {
+    password?: string;
+    apiKey?: string;
+  }) | null> {
+    const configData = await this.kv.get('smtp_config', 'text');
+    if (!configData) {
+      return null;
+    }
+
+    return JSON.parse(configData);
+  }
+
+  private async decryptSecret(value?: string): Promise<string | undefined> {
+    if (!value) {
+      return undefined;
+    }
+
+    try {
+      return await decrypt(value, this.encryptionKey);
+    } catch {
+      // Backward compatibility for configs stored before secret encryption was added.
+      return value;
+    }
+  }
 
   /**
    * List all users with pagination
@@ -161,10 +193,22 @@ export class AdminService {
   /**
    * Update SMTP configuration
    */
-  async updateSmtpConfig(config: SmtpConfig): Promise<ApiResponse> {
+  async updateSmtpConfig(config: SmtpConfigUpdate): Promise<ApiResponse> {
     try {
+      const existingConfig = await this.getStoredSmtpConfig();
+      const nextPassword = config.password?.trim();
+      const nextApiKey = config.apiKey?.trim();
+
+      const configForValidation = {
+        ...config,
+        password: nextPassword || existingConfig?.password,
+        apiKey: nextApiKey || existingConfig?.apiKey,
+      };
+
       // Validate config
-      const validation = validateSmtpConfig(config);
+      const validation = validateSmtpConfig(configForValidation, {
+        requirePassword: !existingConfig?.password,
+      });
       if (!validation.valid) {
         return {
           success: false,
@@ -176,13 +220,19 @@ export class AdminService {
         };
       }
 
-      // Encrypt password
-      const encryptedPassword = await encrypt(config.password, this.encryptionKey);
+      const encryptedPassword = nextPassword
+        ? await encrypt(nextPassword, this.encryptionKey)
+        : existingConfig?.password;
+      const encryptedApiKey = nextApiKey
+        ? await encrypt(nextApiKey, this.encryptionKey)
+        : existingConfig?.apiKey;
 
       // Store in KV
       const configToStore = {
+        ...existingConfig,
         ...config,
         password: encryptedPassword,
+        apiKey: encryptedApiKey,
       };
 
       await this.kv.put('smtp_config', JSON.stringify(configToStore));
@@ -207,13 +257,12 @@ export class AdminService {
   }
 
   /**
-   * Get SMTP configuration
+   * Get SMTP configuration metadata for the admin UI.
    */
-  async getSmtpConfig(): Promise<ApiResponse<SmtpConfig>> {
+  async getSmtpConfig(): Promise<ApiResponse<SmtpConfigSummary>> {
     try {
-      const configData = await this.kv.get('smtp_config', 'text');
-
-      if (!configData) {
+      const config = await this.getStoredSmtpConfig();
+      if (!config) {
         return {
           success: false,
           error: {
@@ -223,20 +272,58 @@ export class AdminService {
         };
       }
 
-      const config = JSON.parse(configData);
+      const safeConfig = {
+        ...config,
+      };
+      delete safeConfig.password;
+      delete safeConfig.apiKey;
 
-      // Decrypt password
-      const decryptedPassword = await decrypt(config.password, this.encryptionKey);
+      return {
+        success: true,
+        data: {
+          ...safeConfig,
+          hasPassword: Boolean(config.password),
+          hasApiKey: Boolean(config.apiKey),
+        },
+      };
+    } catch (error) {
+      console.error('Get SMTP config error:', error);
+      return {
+        success: false,
+        error: {
+          code: 'GET_SMTP_FAILED',
+          message: 'Failed to get SMTP configuration',
+        },
+      };
+    }
+  }
+
+  /**
+   * Get full SMTP configuration for server-side email sending.
+   */
+  async getDecryptedSmtpConfig(): Promise<ApiResponse<SmtpConfig>> {
+    try {
+      const config = await this.getStoredSmtpConfig();
+      if (!config) {
+        return {
+          success: false,
+          error: {
+            code: 'SMTP_NOT_CONFIGURED',
+            message: 'SMTP configuration not found',
+          },
+        };
+      }
 
       return {
         success: true,
         data: {
           ...config,
-          password: decryptedPassword,
+          password: (await this.decryptSecret(config.password)) || '',
+          apiKey: await this.decryptSecret(config.apiKey),
         },
       };
     } catch (error) {
-      console.error('Get SMTP config error:', error);
+      console.error('Get decrypted SMTP config error:', error);
       return {
         success: false,
         error: {

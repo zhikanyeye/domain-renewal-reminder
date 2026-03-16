@@ -36,7 +36,7 @@ export function Verify() {
           setStatus('error');
           setMessage(result.error?.message || '验证失败');
         }
-      } catch (error) {
+      } catch {
         setStatus('error');
         setMessage('验证时发生错误');
       }

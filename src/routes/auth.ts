@@ -50,13 +50,13 @@ auth.post('/register', async (c) => {
         c.env.ENCRYPTION_KEY as string
       );
       
-      const smtpConfigResult = await adminService.getSmtpConfig();
+      const smtpConfigResult = await adminService.getDecryptedSmtpConfig();
       
       if (smtpConfigResult.success && smtpConfigResult.data) {
         const emailService = new EmailService(smtpConfigResult.data);
         
-        const token = result.data.verificationToken;
-        const baseUrl = c.env.FRONTEND_URL || new URL(c.req.url).origin;
+        const token = result.data.verificationToken as string;
+        const baseUrl = (c.env.FRONTEND_URL as string | undefined) || new URL(c.req.url).origin;
         
         const { subject, body } = emailService.composeVerificationEmail(email, token, baseUrl);
         
@@ -298,13 +298,13 @@ auth.post('/resend-verification', async (c) => {
         c.env.ENCRYPTION_KEY as string
       );
       
-      const smtpConfigResult = await adminService.getSmtpConfig();
+      const smtpConfigResult = await adminService.getDecryptedSmtpConfig();
       
       if (smtpConfigResult.success && smtpConfigResult.data) {
         const emailService = new EmailService(smtpConfigResult.data);
         
-        const token = result.data.verificationToken;
-        const baseUrl = c.env.FRONTEND_URL || new URL(c.req.url).origin;
+        const token = result.data.verificationToken as string;
+        const baseUrl = (c.env.FRONTEND_URL as string | undefined) || new URL(c.req.url).origin;
         
         const { subject, body } = emailService.composeVerificationEmail(email, token, baseUrl);
         

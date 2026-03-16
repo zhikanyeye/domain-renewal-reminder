@@ -2,9 +2,9 @@
  * Dashboard Page
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import { apiClient } from '../api/client';
 
 interface Domain {
@@ -16,6 +16,28 @@ interface Domain {
   reminders_sent: number;
   reminder_count: number;
   usage_period_years: number;
+}
+
+interface DomainFilters {
+  renewalUrl?: string;
+  usagePeriodYears?: number;
+  reminderCount?: number;
+}
+
+interface DomainsResponse {
+  domains: Domain[];
+  total: number;
+  totalPages: number;
+}
+
+interface DomainFormData {
+  domainAddress: string;
+  renewalUrl: string;
+  registrationDate: string;
+  usagePeriodYears: number;
+  reminderDaysOffset: number;
+  reminderEmail: string;
+  reminderCount: number;
 }
 
 export function Dashboard() {
@@ -43,21 +65,17 @@ export function Dashboard() {
   // Search state
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  useEffect(() => {
-    loadDomains();
-  }, [filterRenewalUrl, filterUsagePeriod, filterReminderCount, currentPage]);
-
-  const loadDomains = async () => {
+  const loadDomains = useCallback(async () => {
     setLoading(true);
     try {
-      const filters: any = {};
+      const filters: DomainFilters = {};
       if (filterRenewalUrl) filters.renewalUrl = filterRenewalUrl;
       if (filterUsagePeriod) filters.usagePeriodYears = filterUsagePeriod;
       if (filterReminderCount) filters.reminderCount = filterReminderCount;
       
       const response = await apiClient.getDomains(filters, currentPage, pageSize);
       if (response.success && response.data) {
-        const data = response.data as any;
+        const data = response.data as DomainsResponse;
         setDomains(data.domains || []);
         setTotalDomains(data.total || 0);
         setTotalPages(data.totalPages || 1);
@@ -67,7 +85,11 @@ export function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, filterReminderCount, filterRenewalUrl, filterUsagePeriod, pageSize]);
+
+  useEffect(() => {
+    void loadDomains();
+  }, [loadDomains]);
 
   const handleLogout = async () => {
     await logout();
@@ -864,7 +886,7 @@ function AddDomainModal({ onClose, onSuccess }: AddDomainModalProps) {
       } else {
         setError(response.error?.message || '添加失败');
       }
-    } catch (err) {
+    } catch {
       setError('网络错误，请重试');
     } finally {
       setLoading(false);
@@ -1072,13 +1094,13 @@ mydomain.net,https://registrar.com/renew,2023-06-15,2,60,admin@domain.net,5`;
     }
   };
 
-  const parseCSV = (text: string): any[] => {
+  const parseCSV = (text: string): DomainFormData[] => {
     const lines = text.split('\n').filter(line => line.trim());
     if (lines.length < 2) {
       throw new Error('CSV 文件格式错误：至少需要标题行和一行数据');
     }
 
-    const domains: any[] = [];
+    const domains: DomainFormData[] = [];
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
@@ -1139,8 +1161,8 @@ mydomain.net,https://registrar.com/renew,2023-06-15,2,60,admin@domain.net,5`;
       } else {
         setError(response.error?.message || '批量导入失败');
       }
-    } catch (err: any) {
-      setError(err.message || '文件解析失败');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '文件解析失败');
     } finally {
       setLoading(false);
     }
@@ -1347,7 +1369,7 @@ function EditDomainModal({ domain, onClose, onSuccess }: EditDomainModalProps) {
       } else {
         setError(response.error?.message || '更新失败');
       }
-    } catch (err) {
+    } catch {
       setError('网络错误，请重试');
     } finally {
       setLoading(false);
@@ -1530,7 +1552,7 @@ function DeleteConfirmDialog({ domain, onClose, onSuccess }: DeleteConfirmDialog
       } else {
         setError(response.error?.message || '删除失败');
       }
-    } catch (err) {
+    } catch {
       setError('网络错误，请重试');
     } finally {
       setLoading(false);

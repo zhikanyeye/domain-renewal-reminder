@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -37,7 +37,7 @@ export function Login() {
           setShowResendButton(true);
         }
       }
-    } catch (err) {
+    } catch {
       setError('登录时发生错误');
     } finally {
       setLoading(false);
@@ -58,7 +58,7 @@ export function Login() {
       } else {
         setResendMessage(result.error?.message || '发送失败,请稍后重试');
       }
-    } catch (err) {
+    } catch {
       setResendMessage('发送失败,请稍后重试');
     } finally {
       setResendLoading(false);

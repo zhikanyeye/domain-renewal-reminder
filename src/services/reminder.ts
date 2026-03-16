@@ -34,7 +34,7 @@ export class ReminderService {
 
       // Get SMTP config
       const adminService = new AdminService(this.db, this.kv, this.encryptionKey);
-      const smtpResult = await adminService.getSmtpConfig();
+      const smtpResult = await adminService.getDecryptedSmtpConfig();
 
       if (!smtpResult.success || !smtpResult.data) {
         console.error('SMTP not configured, cannot send reminders');

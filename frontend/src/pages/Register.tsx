@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 
 export function Register() {
   const [email, setEmail] = useState('');
@@ -49,7 +49,7 @@ export function Register() {
       } else {
         setError(result.message || '注册失败');
       }
-    } catch (err) {
+    } catch {
       setError('注册时发生错误');
     } finally {
       setLoading(false);

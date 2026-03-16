@@ -4,15 +4,40 @@
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8787/api';
 
-export interface ApiResponse<T = any> {
+type ApiError = {
+  code: string;
+  message: string;
+  details?: unknown;
+};
+
+type DomainPayload = {
+  domainAddress: string;
+  renewalUrl: string;
+  registrationDate: string;
+  usagePeriodYears: number;
+  reminderDaysOffset: number;
+  reminderEmail: string;
+  reminderCount: number;
+};
+
+type SmtpConfigPayload = {
+  provider: 'http-api' | 'smtp';
+  host: string;
+  port: number;
+  username: string;
+  password?: string;
+  fromEmail: string;
+  fromName: string;
+  apiType?: 'resend' | 'sendgrid' | 'mailgun' | 'custom';
+  apiKey?: string;
+  mailgunDomain?: string;
+};
+
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
-  error?: {
-    code: string;
-    message: string;
-    details?: any;
-  };
+  error?: ApiError;
 }
 
 class ApiClient {
@@ -142,37 +167,21 @@ class ApiClient {
     return this.request('/domains/grouped');
   }
 
-  async addDomain(domain: {
-    domainAddress: string;
-    renewalUrl: string;
-    registrationDate: string;
-    usagePeriodYears: number;
-    reminderDaysOffset: number;
-    reminderEmail: string;
-    reminderCount: number;
-  }) {
+  async addDomain(domain: DomainPayload) {
     return this.request('/domains', {
       method: 'POST',
       body: JSON.stringify(domain),
     });
   }
 
-  async batchAddDomains(domains: Array<{
-    domainAddress: string;
-    renewalUrl: string;
-    registrationDate: string;
-    usagePeriodYears: number;
-    reminderDaysOffset: number;
-    reminderEmail: string;
-    reminderCount: number;
-  }>) {
+  async batchAddDomains(domains: DomainPayload[]) {
     return this.request('/domains/batch', {
       method: 'POST',
       body: JSON.stringify(domains),
     });
   }
 
-  async updateDomain(id: string, updates: any) {
+  async updateDomain(id: string, updates: Record<string, unknown>) {
     return this.request(`/domains/${id}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
@@ -238,18 +247,7 @@ class ApiClient {
     });
   }
 
-  async updateSmtpConfig(config: {
-    provider: 'http-api' | 'smtp';
-    host: string;
-    port: number;
-    username: string;
-    password: string;
-    fromEmail: string;
-    fromName: string;
-    apiType?: 'resend' | 'sendgrid' | 'mailgun' | 'custom';
-    apiKey?: string;
-    mailgunDomain?: string;
-  }) {
+  async updateSmtpConfig(config: SmtpConfigPayload) {
     return this.adminRequest('/admin/smtp', {
       method: 'POST',
       body: JSON.stringify(config),

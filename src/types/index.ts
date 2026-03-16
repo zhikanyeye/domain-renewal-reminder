@@ -73,6 +73,16 @@ export type SmtpConfig = {
   mailgunDomain?: string; // For Mailgun only
 };
 
+export type SmtpConfigUpdate = Omit<SmtpConfig, 'password' | 'apiKey'> & {
+  password?: string;
+  apiKey?: string;
+};
+
+export type SmtpConfigSummary = Omit<SmtpConfig, 'password' | 'apiKey'> & {
+  hasPassword: boolean;
+  hasApiKey: boolean;
+};
+
 // API response types
 export type ApiResponse<T = any> = {
   success: boolean;

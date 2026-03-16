@@ -79,11 +79,18 @@ export function validateDomainInput(input: Partial<DomainInput>): {
 /**
  * Validates SMTP configuration
  */
-export function validateSmtpConfig(config: any): {
+export function validateSmtpConfig(
+  config: any,
+  options: { requirePassword?: boolean } = {}
+): {
   valid: boolean;
   errors: string[];
 } {
   const errors: string[] = [];
+  const requirePassword = options.requirePassword ?? true;
+  const hasSecret =
+    (typeof config.password === 'string' && config.password.length > 0) ||
+    (typeof config.apiKey === 'string' && config.apiKey.length > 0);
 
   // Validate provider
   if (!config.provider || !['http-api', 'smtp'].includes(config.provider)) {
@@ -99,7 +106,7 @@ export function validateSmtpConfig(config: any): {
     errors.push('From name is required');
   }
 
-  if (!config.password || typeof config.password !== 'string') {
+  if (requirePassword && !hasSecret) {
     errors.push('Password/API Key is required');
   }
 
