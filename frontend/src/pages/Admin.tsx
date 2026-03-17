@@ -317,11 +317,11 @@ export function Admin() {
   }
 
   return (
-    <div className="min-h-screen w-full ink-wash-bg relative">
+    <div className="app-shell ink-wash-bg">
       <div className="ink-pattern"></div>
       
       {/* Header */}
-      <header className="glass-card border-b border-gray-200/50 sticky top-0 z-40 relative">
+      <header className="app-topbar">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
@@ -351,7 +351,7 @@ export function Admin() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 relative z-10">
+      <main className="app-main">
         {/* Tabs */}
         <div className="glass-card rounded-xl sm:rounded-2xl shadow-lg mb-6 overflow-hidden">
           <div className="border-b border-gray-200/50">
