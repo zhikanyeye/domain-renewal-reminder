@@ -236,10 +236,9 @@ pre {
 }
 
 .auth-panel {
-  width: min(1080px, 100%);
-  min-height: min(720px, calc(100vh - 56px));
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+  width: min(560px, 100%);
+  min-height: auto;
+  display: block;
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(80, 100, 115, 0.12);
   box-shadow: 0 22px 48px rgba(8, 25, 36, 0.08);
@@ -252,58 +251,9 @@ pre {
   padding: 32px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   gap: 24px;
 }
 
-.auth-panel__side {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(180deg, rgba(245, 249, 252, 0.96) 0%, rgba(236, 243, 248, 0.98) 100%);
-  color: var(--color-gray-900);
-  padding: 32px;
-  display: flex;
-  align-items: center;
-}
-
-.auth-panel__side::before {
-  content: "";
-  position: absolute;
-  inset: 16px;
-  border: 1px solid rgba(80, 100, 115, 0.1);
-  border-radius: 18px;
-  pointer-events: none;
-}
-
-.auth-panel__orb {
-  position: absolute;
-  border-radius: 999px;
-  filter: blur(8px);
-}
-
-.auth-panel__orb--one {
-  inset: 10% auto auto 10%;
-  width: 140px;
-  height: 140px;
-  background: radial-gradient(circle, rgba(57, 203, 255, 0.16), transparent 72%);
-}
-
-.auth-panel__orb--two {
-  inset: auto 10% 10% auto;
-  width: 180px;
-  height: 180px;
-  background: radial-gradient(circle, rgba(15, 195, 234, 0.12), transparent 72%);
-}
-
-.auth-side__content {
-  position: relative;
-  z-index: 1;
-  max-width: 420px;
-  display: grid;
-  gap: 12px;
-}
-
-.auth-side__eyebrow,
 .auth-eyebrow {
   display: inline-flex;
   align-items: center;
@@ -311,25 +261,6 @@ pre {
   letter-spacing: 0.08em;
   font-size: 12px;
   font-weight: 600;
-}
-
-.auth-side__eyebrow {
-  color: var(--app-text-faint);
-  margin-bottom: 4px;
-}
-
-.auth-side__content h2 {
-  margin: 0;
-  font-size: clamp(1.55rem, 2.5vw, 2rem);
-  line-height: 1.3;
-  font-weight: 700;
-}
-
-.auth-side__content p {
-  margin: 0;
-  color: var(--app-text-subtle);
-  line-height: 1.7;
-  font-size: 0.95rem;
 }
 
 .auth-copy {
@@ -351,7 +282,7 @@ pre {
 
 .auth-description {
   margin: 0;
-  max-width: 620px;
+  max-width: 100%;
   color: var(--app-text-subtle);
   line-height: 1.75;
   font-size: 0.98rem;
@@ -439,42 +370,6 @@ pre {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--app-text-faint);
-}
-
-.auth-highlights {
-  list-style: none;
-  display: grid;
-  gap: 14px;
-  padding: 0;
-  margin: 12px 0 0;
-}
-
-.auth-highlights__item {
-  display: grid;
-  grid-template-columns: 12px minmax(0, 1fr);
-  gap: 14px;
-  align-items: start;
-}
-
-.auth-highlights__item strong {
-  display: block;
-  font-size: 0.98rem;
-  margin-bottom: 4px;
-}
-
-.auth-highlights__item p {
-  margin: 0;
-  font-size: 0.92rem;
-  color: var(--app-text-subtle);
-}
-
-.auth-highlights__marker {
-  width: 12px;
-  height: 12px;
-  margin-top: 5px;
-  border-radius: 999px;
-  background: linear-gradient(180deg, rgba(14, 179, 240, 0.9), rgba(14, 179, 240, 0.4));
-  box-shadow: 0 0 0 5px rgba(57, 203, 255, 0.08);
 }
 
 .status-banner {
@@ -852,34 +747,45 @@ pre {
   }
 }
 
-@media (max-width: 1024px) {
-  .auth-panel {
-    grid-template-columns: 1fr;
+@media (max-width: 900px) {
+  .auth-shell {
+    align-items: flex-start;
+    padding-block: 32px;
   }
 
-  .auth-panel__side {
-    min-height: 280px;
-    align-items: flex-start;
+  .auth-panel {
+    width: min(640px, 100%);
   }
 }
 
 @media (max-width: 640px) {
   .auth-shell {
-    padding: 16px;
+    padding: 16px 12px 24px;
   }
 
   .auth-panel {
     min-height: auto;
-    border-radius: 24px;
+    border-radius: 18px;
   }
 
-  .auth-panel__main,
-  .auth-panel__side {
-    padding: 22px;
+  .auth-panel__main {
+    padding: 22px 18px;
+    gap: 20px;
   }
 
   .auth-title {
-    font-size: 2.15rem;
+    font-size: 2rem;
+   }
+
+  .auth-description {
+    font-size: 0.94rem;
+    line-height: 1.65;
+  }
+
+  .field-control {
+    min-height: 52px;
+    padding-right: 14px;
+    padding-left: 46px;
   }
 
   .button-row {
@@ -895,6 +801,22 @@ pre {
   .app-main {
     padding-inline: 12px;
     padding-top: 20px;
+  }
+}
+
+@media (max-width: 420px) {
+  .brand-mark {
+    gap: 10px;
+  }
+
+  .brand-mark__copy span {
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+  }
+
+  .status-banner {
+    padding: 14px 14px 14px 16px;
+    gap: 12px;
   }
 }
 

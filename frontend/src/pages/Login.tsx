@@ -65,22 +65,6 @@ export function Login() {
       eyebrow="用户登录"
       title="登录系统"
       description="输入已注册的邮箱和密码，进入域名续费提醒后台。"
-      sideTitle="当前页面可完成常用登录操作"
-      sideDescription="登录、验证提醒和重发验证邮件都在同一页面处理，减少无关跳转。"
-      highlights={[
-        {
-          title: '状态反馈明确',
-          description: '登录结果会直接显示，验证相关提示会在当前页更新。',
-        },
-        {
-          title: '入口集中',
-          description: '普通用户注册入口和管理员入口保留在同一处，便于区分访问路径。',
-        },
-        {
-          title: '适配常见设备',
-          description: '表单和提示信息在手机与桌面端都会保持可读和可操作。',
-        },
-      ]}
       footer={
         <>
           <div className="separator">

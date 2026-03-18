@@ -46,22 +46,6 @@ export function Verify() {
       eyebrow="邮箱验证"
       title="邮箱验证"
       description="系统正在确认该验证链接是否有效。验证完成后将返回登录页。"
-      sideTitle="验证结果会在当前页直接反馈"
-      sideDescription="当前页面负责处理验证状态、失败提示和跳转，不需要额外操作。"
-      highlights={[
-        {
-          title: '处理状态清晰',
-          description: '验证中、验证成功和验证失败都会直接显示在当前页。',
-        },
-        {
-          title: '返回路径固定',
-          description: '验证完成后会自动返回登录页，减少用户重复操作。',
-        },
-        {
-          title: '失败后可重试',
-          description: '如果链接过期或缺失，可回到登录页重新发送验证邮件。',
-        },
-      ]}
       footer={
         <div className="button-row">
           <button type="button" className="secondary-button" onClick={() => navigate('/login')}>

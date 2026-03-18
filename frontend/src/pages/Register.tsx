@@ -58,22 +58,6 @@ export function Register() {
       eyebrow="账号注册"
       title="创建账户"
       description="注册后即可使用域名续费提醒、邮件验证和后台管理功能。"
-      sideTitle="注册完成后进入标准验证流程"
-      sideDescription="系统会在创建账户后发送验证邮件，完成验证后即可登录。"
-      highlights={[
-        {
-          title: '验证步骤固定',
-          description: '注册成功后会发送验证邮件，避免遗漏账户激活步骤。',
-        },
-        {
-          title: '密码规则明确',
-          description: '页面直接提示密码要求，提交前即可确认是否符合规范。',
-        },
-        {
-          title: '后续配置集中',
-          description: '登录后可继续维护域名、提醒频率和邮件发送配置。',
-        },
-      ]}
       footer={
         <>
           <div className="separator">

@@ -1,18 +1,10 @@
 import type { ReactNode } from 'react';
 
-type Highlight = {
-  title: string;
-  description: string;
-};
-
 type AuthShellProps = {
   eyebrow: string;
   title: string;
   description: string;
   children: ReactNode;
-  sideTitle: string;
-  sideDescription: string;
-  highlights: Highlight[];
   footer?: ReactNode;
 };
 
@@ -43,9 +35,6 @@ export function AuthShell({
   title,
   description,
   children,
-  sideTitle,
-  sideDescription,
-  highlights,
   footer,
 }: AuthShellProps) {
   return (
@@ -61,27 +50,6 @@ export function AuthShell({
           <div className="auth-body">{children}</div>
           {footer ? <div className="auth-footer">{footer}</div> : null}
         </section>
-
-        <aside className="auth-panel__side">
-          <div className="auth-panel__orb auth-panel__orb--one"></div>
-          <div className="auth-panel__orb auth-panel__orb--two"></div>
-          <div className="auth-side__content">
-            <span className="auth-side__eyebrow">系统说明</span>
-            <h2>{sideTitle}</h2>
-            <p>{sideDescription}</p>
-            <ul className="auth-highlights">
-              {highlights.map((item) => (
-                <li key={item.title} className="auth-highlights__item">
-                  <div className="auth-highlights__marker"></div>
-                  <div>
-                    <strong>{item.title}</strong>
-                    <p>{item.description}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </aside>
       </div>
     </div>
   );
