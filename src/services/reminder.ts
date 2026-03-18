@@ -85,10 +85,11 @@ export class ReminderService {
         .prepare(
           `SELECT * FROM domains
            WHERE reminder_start_date <= ?
+           AND expiry_date >= ?
            AND reminders_sent < reminder_count
            ORDER BY expiry_date ASC`
         )
-        .bind(todayTimestamp)
+        .bind(todayTimestamp, todayTimestamp)
         .all();
 
       return result.results as Domain[];

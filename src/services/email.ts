@@ -9,6 +9,22 @@ import { getDaysUntilExpiry, timestampToDate } from '../utils/date';
 export class EmailService {
   constructor(private smtpConfig: SmtpConfig) {}
 
+  private getSmtpResponseCode(response: string): string {
+    const match = response.match(/^(\d{3})/);
+    if (!match) {
+      throw new Error(`Invalid SMTP response: ${response}`);
+    }
+
+    return match[1];
+  }
+
+  private assertSmtpResponse(response: string, expectedCodes: string[], context: string): void {
+    const code = this.getSmtpResponseCode(response);
+    if (!expectedCodes.includes(code)) {
+      throw new Error(`${context} failed: ${response}`);
+    }
+  }
+
   /**
    * Send email using configured provider
    */
@@ -219,6 +235,7 @@ export class EmailService {
       const reader = socket.readable.getReader();
       const encoder = new TextEncoder();
       const decoder = new TextDecoder();
+      let responseBuffer = '';
 
       try {
         // Helper function to send command
@@ -227,81 +244,120 @@ export class EmailService {
           await writer.write(encoder.encode(command + '\r\n'));
         };
 
-        // Helper function to read response
+        const extractSmtpResponse = (): string | null => {
+          const completeLines = responseBuffer.match(/[^\r\n]*\r\n/g) ?? [];
+          if (completeLines.length === 0) {
+            return null;
+          }
+
+          const firstLine = completeLines[0].slice(0, -2);
+          const match = firstLine.match(/^(\d{3})([ -])/);
+          if (!match) {
+            return null;
+          }
+
+          const [, code, separator] = match;
+          if (separator === ' ') {
+            const consumedLength = completeLines[0].length;
+            const response = responseBuffer.slice(0, consumedLength).trimEnd();
+            responseBuffer = responseBuffer.slice(consumedLength);
+            return response;
+          }
+
+          let consumedLength = 0;
+          for (const lineWithBreak of completeLines) {
+            consumedLength += lineWithBreak.length;
+            const line = lineWithBreak.slice(0, -2);
+            if (line.startsWith(`${code} `)) {
+              const response = responseBuffer.slice(0, consumedLength).trimEnd();
+              responseBuffer = responseBuffer.slice(consumedLength);
+              return response;
+            }
+          }
+
+          return null;
+        };
+
+        // Read until a complete SMTP response is assembled, including multiline replies.
         const readResponse = async (): Promise<string> => {
-          const { value } = await reader.read();
-          const response = decoder.decode(value);
-          console.log('SMTP <', response);
-          return response;
+          while (true) {
+            const response = extractSmtpResponse();
+            if (response) {
+              console.log('SMTP <', response);
+              return response;
+            }
+
+            const { value, done } = await reader.read();
+            if (done) {
+              const trailing = responseBuffer + decoder.decode();
+              responseBuffer = '';
+
+              if (!trailing.trim()) {
+                throw new Error('SMTP connection closed unexpectedly');
+              }
+
+              const finalResponse = trailing.trimEnd();
+              console.log('SMTP <', finalResponse);
+              return finalResponse;
+            }
+
+            responseBuffer += decoder.decode(value, { stream: true });
+          }
         };
 
         // 1. Read server greeting
         let response = await readResponse();
-        if (!response.startsWith('220')) {
-          throw new Error(`SMTP greeting failed: ${response}`);
-        }
+        this.assertSmtpResponse(response, ['220'], 'SMTP greeting');
 
         // 2. Send EHLO
         await sendCommand(`EHLO ${this.smtpConfig.host}`);
         response = await readResponse();
-        if (!response.startsWith('250')) {
-          throw new Error(`EHLO failed: ${response}`);
-        }
+        this.assertSmtpResponse(response, ['250'], 'EHLO');
 
         // 3. STARTTLS if port 587
         if (this.smtpConfig.port === 587) {
           await sendCommand('STARTTLS');
           response = await readResponse();
-          if (!response.startsWith('220')) {
-            throw new Error(`STARTTLS failed: ${response}`);
-          }
+          this.assertSmtpResponse(response, ['220'], 'STARTTLS');
           // Connection will be upgraded to TLS automatically
+
+          await sendCommand(`EHLO ${this.smtpConfig.host}`);
+          response = await readResponse();
+          this.assertSmtpResponse(response, ['250'], 'EHLO after STARTTLS');
         }
 
         // 4. AUTH LOGIN (if password is provided)
         if (this.smtpConfig.password) {
           await sendCommand('AUTH LOGIN');
           response = await readResponse();
-          if (!response.startsWith('334')) {
-            throw new Error(`AUTH LOGIN failed: ${response}`);
-          }
+          this.assertSmtpResponse(response, ['334'], 'AUTH LOGIN');
 
           // Send username (Base64 encoded) - use email if username is empty
           const username = this.smtpConfig.username || this.smtpConfig.fromEmail;
           await sendCommand(btoa(username));
           response = await readResponse();
-          if (!response.startsWith('334')) {
-            throw new Error(`Username authentication failed: ${response}`);
-          }
+          this.assertSmtpResponse(response, ['334'], 'Username authentication');
 
           // Send password (Base64 encoded)
           await sendCommand(btoa(this.smtpConfig.password));
           response = await readResponse();
-          if (!response.startsWith('235')) {
-            throw new Error(`Password authentication failed: ${response}`);
-          }
+          this.assertSmtpResponse(response, ['235'], 'Password authentication');
         }
 
         // 5. MAIL FROM
         await sendCommand(`MAIL FROM:<${this.smtpConfig.fromEmail}>`);
         response = await readResponse();
-        if (!response.startsWith('250')) {
-          throw new Error(`MAIL FROM failed: ${response}`);
-        }
+        this.assertSmtpResponse(response, ['250'], 'MAIL FROM');
 
         // 6. RCPT TO
         await sendCommand(`RCPT TO:<${to}>`);
         response = await readResponse();
-        if (!response.startsWith('250')) {
-          throw new Error(`RCPT TO failed: ${response}`);
-        }
+        this.assertSmtpResponse(response, ['250', '251'], 'RCPT TO');
 
         // 7. DATA
         await sendCommand('DATA');
         response = await readResponse();
-        if (!response.startsWith('354')) {
-          throw new Error(`DATA command failed: ${response}`);
-        }
+        this.assertSmtpResponse(response, ['354'], 'DATA command');
 
         // 8. Send email content
         const emailContent = [
@@ -316,13 +372,12 @@ export class EmailService {
 
         await sendCommand(emailContent);
         response = await readResponse();
-        if (!response.startsWith('250')) {
-          throw new Error(`Email sending failed: ${response}`);
-        }
+        this.assertSmtpResponse(response, ['250'], 'Email sending');
 
         // 9. QUIT
         await sendCommand('QUIT');
-        await readResponse();
+        response = await readResponse();
+        this.assertSmtpResponse(response, ['221'], 'QUIT');
 
         return {
           success: true,
