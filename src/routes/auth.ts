@@ -20,6 +20,14 @@ function getVerificationAppUrl(c: { req: { url: string; header(name: string): st
   );
 }
 
+function describeProvider(config: { provider: string; apiType?: string; host?: string; port?: number }): string {
+  if (config.provider === 'http-api') {
+    return `http-api:${config.apiType || 'custom'}`;
+  }
+
+  return `smtp:${config.host || 'unknown'}:${config.port || 'unknown'}`;
+}
+
 // Apply rate limiting to all auth routes
 auth.use('*', rateLimitAuth);
 
@@ -63,6 +71,7 @@ auth.post('/register', async (c) => {
       
       if (smtpConfigResult.success && smtpConfigResult.data) {
         const emailService = new EmailService(smtpConfigResult.data);
+        const provider = describeProvider(smtpConfigResult.data);
         
         const token = result.data.verificationToken as string;
         const appUrl = getVerificationAppUrl(c);
@@ -82,6 +91,18 @@ auth.post('/register', async (c) => {
         
         if (!emailResult.success) {
           console.error('Failed to send verification email:', emailResult.error);
+          await adminService.recordEmailSend({
+            userId: result.data.userId as string,
+            userEmail: email,
+            emailType: 'verification',
+            triggerSource: 'register',
+            provider,
+            recipientEmail: email,
+            subject,
+            status: 'failed',
+            errorCode: emailResult.error?.code,
+            errorMessage: emailResult.error?.message,
+          });
           // Don't fail registration if email fails
           return c.json({
             success: true,
@@ -90,12 +111,52 @@ auth.post('/register', async (c) => {
           }, 201);
         }
         
+        await adminService.recordEmailSend({
+          userId: result.data.userId as string,
+          userEmail: email,
+          emailType: 'verification',
+          triggerSource: 'register',
+          provider,
+          recipientEmail: email,
+          subject,
+          status: 'sent',
+        });
+
         console.log('Verification email sent successfully');
       } else {
         console.warn('SMTP not configured, skipping verification email');
+        await adminService.recordEmailSend({
+          userId: result.data.userId as string,
+          userEmail: email,
+          emailType: 'verification',
+          triggerSource: 'register',
+          provider: 'unconfigured',
+          recipientEmail: email,
+          subject: 'Verification email',
+          status: 'failed',
+          errorCode: 'SMTP_NOT_CONFIGURED',
+          errorMessage: 'SMTP configuration not found',
+        });
       }
     } catch (emailError) {
       console.error('Error sending verification email:', emailError);
+      const adminService = new AdminService(
+        c.env.DB as D1Database,
+        c.env.KV as KVNamespace,
+        c.env.ENCRYPTION_KEY as string
+      );
+      await adminService.recordEmailSend({
+        userId: result.data.userId as string,
+        userEmail: email,
+        emailType: 'verification',
+        triggerSource: 'register',
+        provider: 'unknown',
+        recipientEmail: email,
+        subject: 'Verification email',
+        status: 'failed',
+        errorCode: 'EMAIL_ERROR',
+        errorMessage: emailError instanceof Error ? emailError.message : 'Unknown error',
+      });
       // Don't fail registration if email fails
     }
 
@@ -311,6 +372,7 @@ auth.post('/resend-verification', async (c) => {
       
       if (smtpConfigResult.success && smtpConfigResult.data) {
         const emailService = new EmailService(smtpConfigResult.data);
+        const provider = describeProvider(smtpConfigResult.data);
         
         const token = result.data.verificationToken as string;
         const appUrl = getVerificationAppUrl(c);
@@ -328,6 +390,17 @@ auth.post('/resend-verification', async (c) => {
         
         if (!emailResult.success) {
           console.error('Failed to resend verification email:', emailResult.error);
+          await adminService.recordEmailSend({
+            userEmail: email,
+            emailType: 'verification',
+            triggerSource: 'resend-verification',
+            provider,
+            recipientEmail: email,
+            subject,
+            status: 'failed',
+            errorCode: emailResult.error?.code,
+            errorMessage: emailResult.error?.message,
+          });
           return c.json({
             success: false,
             error: {
@@ -338,9 +411,30 @@ auth.post('/resend-verification', async (c) => {
           }, 500);
         }
         
+        await adminService.recordEmailSend({
+          userEmail: email,
+          emailType: 'verification',
+          triggerSource: 'resend-verification',
+          provider,
+          recipientEmail: email,
+          subject,
+          status: 'sent',
+        });
+
         console.log('Verification email resent successfully');
       } else {
         console.warn('SMTP not configured');
+        await adminService.recordEmailSend({
+          userEmail: email,
+          emailType: 'verification',
+          triggerSource: 'resend-verification',
+          provider: 'unconfigured',
+          recipientEmail: email,
+          subject: 'Verification email',
+          status: 'failed',
+          errorCode: 'SMTP_NOT_CONFIGURED',
+          errorMessage: 'SMTP configuration not found',
+        });
         return c.json({
           success: false,
           error: {
@@ -351,6 +445,22 @@ auth.post('/resend-verification', async (c) => {
       }
     } catch (emailError) {
       console.error('Error resending verification email:', emailError);
+      const adminService = new AdminService(
+        c.env.DB as D1Database,
+        c.env.KV as KVNamespace,
+        c.env.ENCRYPTION_KEY as string
+      );
+      await adminService.recordEmailSend({
+        userEmail: email,
+        emailType: 'verification',
+        triggerSource: 'resend-verification',
+        provider: 'unknown',
+        recipientEmail: email,
+        subject: 'Verification email',
+        status: 'failed',
+        errorCode: 'EMAIL_ERROR',
+        errorMessage: emailError instanceof Error ? emailError.message : 'Unknown error',
+      });
       return c.json({
         success: false,
         error: {

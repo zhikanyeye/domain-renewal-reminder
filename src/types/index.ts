@@ -56,6 +56,44 @@ export type AdminLog = {
   timestamp: number;
 };
 
+export type EmailSendType = 'verification' | 'reminder';
+
+export type EmailSendStatus = 'sent' | 'failed';
+
+export type EmailTriggerSource = 'register' | 'resend-verification' | 'cron' | 'manual';
+
+export type EmailSendLog = {
+  id: string;
+  user_id?: string | null;
+  user_email?: string | null;
+  domain_id?: string | null;
+  domain_address?: string | null;
+  email_type: EmailSendType;
+  trigger_source: EmailTriggerSource;
+  provider: string;
+  recipient_email: string;
+  subject: string;
+  status: EmailSendStatus;
+  error_code?: string | null;
+  error_message?: string | null;
+  created_at: number;
+};
+
+export type EmailSendLogInput = {
+  userId?: string;
+  userEmail?: string;
+  domainId?: string;
+  domainAddress?: string;
+  emailType: EmailSendType;
+  triggerSource: EmailTriggerSource;
+  provider: string;
+  recipientEmail: string;
+  subject: string;
+  status: EmailSendStatus;
+  errorCode?: string;
+  errorMessage?: string;
+};
+
 // Email configuration types
 export type EmailProvider = 'http-api' | 'smtp';
 

@@ -4,6 +4,7 @@
 
 import { Hono } from 'hono';
 import { AdminService } from '../services/admin';
+import { ReminderService } from '../services/reminder';
 import { requireAdmin } from '../middleware/auth';
 
 const admin = new Hono();
@@ -203,6 +204,74 @@ admin.get('/logs', async (c) => {
         error: {
           code: 'INTERNAL_ERROR',
           message: 'An error occurred while getting logs',
+        },
+      },
+      500
+    );
+  }
+});
+
+/**
+ * GET /admin/email-logs
+ * Get email send logs
+ */
+admin.get('/email-logs', async (c) => {
+  try {
+    const limit = parseInt(c.req.query('limit') || '100', 10);
+
+    const adminService = new AdminService(
+      c.env.DB as D1Database,
+      c.env.KV as KVNamespace,
+      c.env.ENCRYPTION_KEY as string
+    );
+    const result = await adminService.getEmailSendLogs(limit);
+
+    return c.json(result, result.success ? 200 : 500);
+  } catch (error) {
+    console.error('Get email logs route error:', error);
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'An error occurred while getting email logs',
+        },
+      },
+      500
+    );
+  }
+});
+
+/**
+ * POST /admin/reminders/run
+ * Manually trigger reminder checks
+ */
+admin.post('/reminders/run', async (c) => {
+  try {
+    const adminService = new AdminService(
+      c.env.DB as D1Database,
+      c.env.KV as KVNamespace,
+      c.env.ENCRYPTION_KEY as string
+    );
+    const reminderService = new ReminderService(
+      c.env.DB as D1Database,
+      c.env.KV as KVNamespace,
+      c.env.ENCRYPTION_KEY as string
+    );
+
+    const result = await reminderService.checkReminders('manual');
+
+    await adminService.logAction('RUN_REMINDER_CHECK', result.success ? result.data : result.error);
+
+    return c.json(result, result.success ? 200 : 500);
+  } catch (error) {
+    console.error('Run reminder route error:', error);
+    return c.json(
+      {
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'An error occurred while running reminder checks',
         },
       },
       500

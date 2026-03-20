@@ -24,6 +24,30 @@ interface AdminLog {
   timestamp: number;
 }
 
+interface EmailSendLog {
+  id: string;
+  user_id: string | null;
+  user_email: string | null;
+  domain_id: string | null;
+  domain_address: string | null;
+  email_type: 'verification' | 'reminder';
+  trigger_source: 'register' | 'resend-verification' | 'cron' | 'manual';
+  provider: string;
+  recipient_email: string;
+  subject: string;
+  status: 'sent' | 'failed';
+  error_code: string | null;
+  error_message: string | null;
+  created_at: number;
+}
+
+interface ReminderRunResult {
+  processed: number;
+  sent: number;
+  failed: number;
+  source: 'cron' | 'manual';
+}
+
 interface UsersResponse {
   users: User[];
   total: number;
@@ -48,7 +72,7 @@ export function Admin() {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
-  const [activeTab, setActiveTab] = useState<'users' | 'smtp' | 'logs'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'smtp' | 'reminders' | 'logs'>('users');
 
   // Users state
   const [users, setUsers] = useState<User[]>([]);
@@ -77,6 +101,13 @@ export function Admin() {
   // Logs state
   const [logs, setLogs] = useState<AdminLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
+
+  // Reminder state
+  const [emailLogs, setEmailLogs] = useState<EmailSendLog[]>([]);
+  const [emailLogsLoading, setEmailLogsLoading] = useState(false);
+  const [reminderRunLoading, setReminderRunLoading] = useState(false);
+  const [reminderMessage, setReminderMessage] = useState('');
+  const [lastReminderRun, setLastReminderRun] = useState<ReminderRunResult | null>(null);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,15 +185,31 @@ export function Admin() {
     }
   }, []);
 
+  const loadEmailLogs = useCallback(async () => {
+    setEmailLogsLoading(true);
+    try {
+      const response = await apiClient.getEmailSendLogs(100);
+      if (response.success && response.data) {
+        setEmailLogs(response.data as EmailSendLog[]);
+      }
+    } catch (error) {
+      console.error('Failed to load email logs:', error);
+    } finally {
+      setEmailLogsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (authenticated && activeTab === 'users') {
       void loadUsers();
     } else if (authenticated && activeTab === 'smtp') {
       void loadSmtpConfig();
+    } else if (authenticated && activeTab === 'reminders') {
+      void loadEmailLogs();
     } else if (authenticated && activeTab === 'logs') {
       void loadLogs();
     }
-  }, [authenticated, activeTab, currentPage, loadLogs, loadSmtpConfig, loadUsers]);
+  }, [authenticated, activeTab, currentPage, loadEmailLogs, loadLogs, loadSmtpConfig, loadUsers]);
 
   const handleBlacklistUser = async (userId: string) => {
     const reason = prompt('请输入拉黑原因：');
@@ -234,6 +281,28 @@ export function Admin() {
       setSmtpMessage('Save failed');
     } finally {
       setSmtpLoading(false);
+    }
+  };
+
+  const handleRunReminderCheck = async () => {
+    setReminderRunLoading(true);
+    setReminderMessage('');
+
+    try {
+      const response = await apiClient.runReminderCheck();
+      if (response.success && response.data) {
+        const result = response.data as ReminderRunResult;
+        setLastReminderRun(result);
+        setReminderMessage(`本次共检查 ${result.processed} 条记录，发送成功 ${result.sent} 条，失败 ${result.failed} 条。`);
+        void loadEmailLogs();
+      } else {
+        setReminderMessage(`执行失败：${response.error?.message || '未知错误'}`);
+      }
+    } catch (error) {
+      console.error('Failed to run reminder check:', error);
+      setReminderMessage('执行失败，请稍后重试。');
+    } finally {
+      setReminderRunLoading(false);
     }
   };
 
@@ -387,6 +456,21 @@ export function Admin() {
                   <span>操作日志</span>
                 </div>
               </button>
+              <button
+                onClick={() => setActiveTab('reminders')}
+                className={`flex-1 sm:flex-none shrink-0 px-4 sm:px-6 py-3 sm:py-4 text-sm font-semibold border-b-2 transition-all ${
+                  activeTab === 'reminders'
+                    ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m-2 10H5a2 2 0 01-2-2V8m18 0v8a2 2 0 01-2 2" />
+                  </svg>
+                  <span>提醒测试</span>
+                </div>
+              </button>
             </nav>
           </div>
 
@@ -417,6 +501,17 @@ export function Admin() {
 
             {activeTab === 'logs' && (
               <LogsTab logs={logs} loading={logsLoading} />
+            )}
+
+            {activeTab === 'reminders' && (
+              <RemindersTab
+                emailLogs={emailLogs}
+                logsLoading={emailLogsLoading}
+                runLoading={reminderRunLoading}
+                message={reminderMessage}
+                lastRun={lastReminderRun}
+                onRun={handleRunReminderCheck}
+              />
             )}
           </div>
         </div>
@@ -971,6 +1066,133 @@ function SmtpTab({ config, password, loading, message, onConfigChange, onPasswor
         </a>
       </div>
     </form>
+  );
+}
+
+/**
+ * Reminder Tab Component
+ */
+interface RemindersTabProps {
+  emailLogs: EmailSendLog[];
+  logsLoading: boolean;
+  runLoading: boolean;
+  message: string;
+  lastRun: ReminderRunResult | null;
+  onRun: () => void;
+}
+
+function RemindersTab({
+  emailLogs,
+  logsLoading,
+  runLoading,
+  message,
+  lastRun,
+  onRun,
+}: RemindersTabProps) {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.9fr)]">
+        <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-cyan-50 p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h3 className="text-lg font-bold text-gray-900">手动执行提醒检查</h3>
+              <p className="mt-2 text-sm leading-6 text-gray-600">
+                用于验证 cron 逻辑是否正常，不需要等到每天定时任务执行。触发后会按当前提醒规则立即扫描并尝试发送邮件。
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onRun}
+              disabled={runLoading}
+              className="w-full sm:w-auto shrink-0 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-500 px-4 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:from-indigo-700 hover:to-cyan-600 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {runLoading ? '执行中...' : '立即执行一次'}
+            </button>
+          </div>
+          <div className="mt-4 rounded-xl border border-indigo-100 bg-white/80 p-4 text-sm text-gray-600">
+            定时任务仍会按每天 08:00（中国时间）执行。这里的手动执行不会修改域名到期时间或提醒起始时间，只是立即跑一次相同的筛选与发信流程。
+          </div>
+          {message && (
+            <div className="mt-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-gray-700">
+              {message}
+            </div>
+          )}
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">最近执行来源</div>
+            <div className="mt-2 text-2xl font-bold text-gray-900">{lastRun?.source === 'manual' ? '手动' : '等待执行'}</div>
+          </div>
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">最近检查数量</div>
+            <div className="mt-2 text-2xl font-bold text-gray-900">{lastRun?.processed ?? '-'}</div>
+          </div>
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="text-xs font-semibold uppercase tracking-[0.12em] text-gray-500">最近发送结果</div>
+            <div className="mt-2 text-sm font-semibold text-gray-900">
+              {lastRun ? `成功 ${lastRun.sent} / 失败 ${lastRun.failed}` : '暂无执行记录'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-gray-900">最近发信记录</h3>
+            <p className="mt-1 text-sm text-gray-600">包含验证邮件和域名提醒邮件的最近 100 条发送结果。</p>
+          </div>
+        </div>
+
+        {logsLoading ? (
+          <div className="py-12 text-center">
+            <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-indigo-200 border-t-indigo-600"></div>
+            <p className="mt-4 text-sm text-gray-600">加载中...</p>
+          </div>
+        ) : emailLogs.length === 0 ? (
+          <div className="py-12 text-center text-sm text-gray-600">暂无发信记录。</div>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {emailLogs.map((log) => (
+              <div key={log.id} className="rounded-xl border border-gray-200 bg-slate-50/70 p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${log.status === 'sent' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                        {log.status === 'sent' ? '发送成功' : '发送失败'}
+                      </span>
+                      <span className="inline-flex rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-semibold text-indigo-700">
+                        {log.email_type === 'reminder' ? '提醒邮件' : '验证邮件'}
+                      </span>
+                      <span className="inline-flex rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                        {log.trigger_source}
+                      </span>
+                    </div>
+                    <div className="mt-3 text-sm font-semibold text-gray-900 break-all">{log.subject}</div>
+                    <div className="mt-2 grid gap-2 text-sm text-gray-600 sm:grid-cols-2">
+                      <div className="break-all">收件人：{log.recipient_email}</div>
+                      <div className="break-all">通道：{log.provider}</div>
+                      <div className="break-all">域名：{log.domain_address || '-'}</div>
+                      <div className="break-all">用户：{log.user_email || log.user_id || '-'}</div>
+                    </div>
+                    {log.error_message && (
+                      <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                        {log.error_code ? `${log.error_code}: ` : ''}
+                        {log.error_message}
+                      </div>
+                    )}
+                  </div>
+                  <div className="shrink-0 text-xs text-gray-500">
+                    {new Date(log.created_at * 1000).toLocaleString('zh-CN')}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

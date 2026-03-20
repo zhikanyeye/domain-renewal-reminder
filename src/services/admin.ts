@@ -10,6 +10,8 @@ import {
   SmtpConfigSummary,
   ApiResponse,
   AdminLog,
+  EmailSendLog,
+  EmailSendLogInput,
 } from '../types';
 import { validateSmtpConfig } from '../utils/validation';
 import { encrypt, decrypt } from '../utils/crypto';
@@ -361,9 +363,84 @@ export class AdminService {
   }
 
   /**
+   * Get email send logs
+   */
+  async getEmailSendLogs(limit: number = 100): Promise<ApiResponse<EmailSendLog[]>> {
+    try {
+      const result = await this.db
+        .prepare('SELECT * FROM email_send_logs ORDER BY created_at DESC LIMIT ?')
+        .bind(limit)
+        .all();
+
+      return {
+        success: true,
+        data: result.results as EmailSendLog[],
+      };
+    } catch (error) {
+      console.error('Get email send logs error:', error);
+      return {
+        success: false,
+        error: {
+          code: 'GET_EMAIL_LOGS_FAILED',
+          message: 'Failed to get email send logs',
+        },
+      };
+    }
+  }
+
+  /**
+   * Record an email send attempt
+   */
+  async recordEmailSend(log: EmailSendLogInput): Promise<void> {
+    try {
+      const logId = crypto.randomUUID();
+      const timestamp = Math.floor(Date.now() / 1000);
+
+      await this.db
+        .prepare(
+          `INSERT INTO email_send_logs (
+            id,
+            user_id,
+            user_email,
+            domain_id,
+            domain_address,
+            email_type,
+            trigger_source,
+            provider,
+            recipient_email,
+            subject,
+            status,
+            error_code,
+            error_message,
+            created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .bind(
+          logId,
+          log.userId || null,
+          log.userEmail || null,
+          log.domainId || null,
+          log.domainAddress || null,
+          log.emailType,
+          log.triggerSource,
+          log.provider,
+          log.recipientEmail,
+          log.subject,
+          log.status,
+          log.errorCode || null,
+          log.errorMessage || null,
+          timestamp
+        )
+        .run();
+    } catch (error) {
+      console.error('Record email send error:', error);
+    }
+  }
+
+  /**
    * Log an admin action
    */
-  private async logAction(action: string, details?: any): Promise<void> {
+  async logAction(action: string, details?: any): Promise<void> {
     try {
       const logId = crypto.randomUUID();
       const timestamp = Math.floor(Date.now() / 1000);

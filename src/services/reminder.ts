@@ -3,7 +3,7 @@
  * Handles reminder detection and scheduling
  */
 
-import { Domain, ApiResponse } from '../types';
+import { Domain, ApiResponse, EmailTriggerSource } from '../types';
 import { getTodayUTC, dateToTimestamp } from '../utils/date';
 import { EmailService } from './email';
 import { AdminService } from './admin';
@@ -21,7 +21,9 @@ export class ReminderService {
    * Check all domains and send reminders
    * Called by cron trigger
    */
-  async checkReminders(): Promise<ApiResponse<{ sent: number; failed: number }>> {
+  async checkReminders(
+    source: Extract<EmailTriggerSource, 'cron' | 'manual'> = 'cron'
+  ): Promise<ApiResponse<{ processed: number; sent: number; failed: number; source: 'cron' | 'manual' }>> {
     try {
       const today = getTodayUTC();
       const todayTimestamp = dateToTimestamp(today);
@@ -50,10 +52,11 @@ export class ReminderService {
       }
 
       const emailService = new EmailService(smtpResult.data);
+      const provider = this.describeProvider(smtpResult.data);
 
       // Send reminders
       for (const domain of domains) {
-        const result = await this.sendReminder(domain, emailService);
+        const result = await this.sendReminder(domain, emailService, adminService, provider, source);
         if (result.success) {
           sent++;
         } else {
@@ -63,8 +66,13 @@ export class ReminderService {
 
       return {
         success: true,
-        data: { sent, failed },
-        message: `Sent ${sent} reminders, ${failed} failed`,
+        data: {
+          processed: domains.length,
+          sent,
+          failed,
+          source,
+        },
+        message: `Processed ${domains.length} reminders, ${sent} sent, ${failed} failed`,
       };
     } catch (error) {
       console.error('Check reminders error:', error);
@@ -106,7 +114,13 @@ export class ReminderService {
   /**
    * Send reminder for a specific domain
    */
-  private async sendReminder(domain: Domain, emailService: EmailService): Promise<ApiResponse> {
+  private async sendReminder(
+    domain: Domain,
+    emailService: EmailService,
+    adminService: AdminService,
+    provider: string,
+    source: Extract<EmailTriggerSource, 'cron' | 'manual'>
+  ): Promise<ApiResponse> {
     try {
       // Compose email
       const { subject, htmlBody, textBody } = emailService.composeReminderEmail(domain);
@@ -116,11 +130,36 @@ export class ReminderService {
 
       if (!sendResult.success) {
         console.error(`Failed to send reminder for domain ${domain.id}:`, sendResult.error);
+        await adminService.recordEmailSend({
+          userId: domain.user_id,
+          domainId: domain.id,
+          domainAddress: domain.domain_address,
+          emailType: 'reminder',
+          triggerSource: source,
+          provider,
+          recipientEmail: domain.reminder_email,
+          subject,
+          status: 'failed',
+          errorCode: sendResult.error?.code,
+          errorMessage: sendResult.error?.message,
+        });
         return sendResult;
       }
 
       // Increment reminder sent count
       await this.incrementReminderSent(domain.id);
+
+      await adminService.recordEmailSend({
+        userId: domain.user_id,
+        domainId: domain.id,
+        domainAddress: domain.domain_address,
+        emailType: 'reminder',
+        triggerSource: source,
+        provider,
+        recipientEmail: domain.reminder_email,
+        subject,
+        status: 'sent',
+      });
 
       console.log(`Reminder sent for domain ${domain.domain_address}`);
 
@@ -157,5 +196,13 @@ export class ReminderService {
       console.error('Increment reminder sent error:', error);
       throw error;
     }
+  }
+
+  private describeProvider(config: { provider: string; apiType?: string; host?: string; port?: number }): string {
+    if (config.provider === 'http-api') {
+      return `http-api:${config.apiType || 'custom'}`;
+    }
+
+    return `smtp:${config.host || 'unknown'}:${config.port || 'unknown'}`;
   }
 }

@@ -261,6 +261,16 @@ class ApiClient {
   async getAdminLogs(limit: number = 100) {
     return this.adminRequest(`/admin/logs?limit=${limit}`);
   }
+
+  async getEmailSendLogs(limit: number = 100) {
+    return this.adminRequest(`/admin/email-logs?limit=${limit}`);
+  }
+
+  async runReminderCheck() {
+    return this.adminRequest('/admin/reminders/run', {
+      method: 'POST',
+    });
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);
