@@ -1,212 +1,265 @@
 # 爱自由域名管理 / Domain Renewal Reminder Service
 
-一个基于 Cloudflare Workers、D1、KV 和 React 的域名到期提醒系统。  
-核心目标是让用户集中管理域名、提醒时间、邮箱通知和管理员配置，并尽量用免费套餐完成部署。
+<div align="center">
 
-- 后端：Cloudflare Workers + Hono + D1 + KV
-- 前端：React 19 + Vite + Tailwind CSS
-- 邮件：支持 HTTP API 与 SMTP
-- 定时任务：Cloudflare Cron
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)
+![Cloudflare](https://img.shields.io/badge/Cloudflare-Workers-orange.svg)
 
-## 当前功能
+一个基于 Cloudflare 免费资源构建的域名续费管理与提醒服务，帮助你及时续费域名，避免域名过期。
 
-- 用户注册、登录、邮箱验证
-- 域名新增、编辑、删除、分组查看
-- 可配置提醒开始日期、提醒次数、提醒邮箱
-- 每天自动执行提醒检查
-- 到期后 30 天内仍可继续提醒
-- 管理员 SMTP / HTTP API 发信配置
-- 管理员操作日志
-- 发信记录查看
-- 管理员手动触发一次提醒检查
-- 隐藏式管理员入口
-- 登录页、控制台、管理页响应式适配
+[English](#english) | [中文](#中文)
 
-## 提醒规则
+</div>
 
-当前提醒逻辑以实际代码为准，关键规则如下：
+---
 
-- Cron 配置在 [wrangler.toml](/D:/domain-renewal-reminder-main/wrangler.toml)，表达式是 `0 0 * * *`
-- 这表示每天 `00:00 UTC` 执行一次，换算为中国时间是每天 `08:00`
-- 当 `reminder_start_date <= 今天` 时，域名会进入提醒范围
-- 当域名过期后，只要仍在 30 天宽限期内，且提醒次数未发满，系统仍会继续提醒
-- 管理员在后台手动触发提醒检查时，不会消耗正式提醒次数
-- 正式提醒次数只会在 cron 触发并且邮件发送被 SMTP / 邮件服务受理后递增
+## 中文
 
-实现参考：
+### 📖 简介
 
-- [reminder.ts](/D:/domain-renewal-reminder-main/src/services/reminder.ts)
-- [email.ts](/D:/domain-renewal-reminder-main/src/services/email.ts)
+爱自由域名管理是一个免费的 Web 应用，帮助用户统一管理域名续费时间、提醒计划和邮件通知。系统会自动计算到期日期，并通过定时邮件提醒机制降低域名过期风险。
 
-## 管理员入口
+**核心特性：**
+- ✅ 用户注册、登录和邮箱验证
+- ✅ 域名管理（添加、编辑、删除、批量导入）
+- ✅ 自动计算到期日期和提醒开始日期
+- ✅ 定时邮件提醒（每天自动检查）
+- ✅ 灵活的邮件配置（支持 HTTP API 和 SMTP）
+- ✅ 域名过滤、搜索和分组查看
+- ✅ 续费闭环：已续费、已处理、暂停提醒、已放弃
+- ✅ 续费后自动顺延下一个周期并重置提醒进度
+- ✅ 支持负责人、处理备注、处理时间记录
+- ✅ 管理员面板（用户管理、邮件配置、邮件日志、手动触发提醒）
+- ✅ 隐藏式管理员入口（三击标题或按 `K` 三次唤出）
+- ✅ 响应式设计（支持手机、平板、电脑）
+- ✅ 基于 Cloudflare 免费套餐，个人或小团队可长期使用
 
-管理员入口默认隐藏，不会直接显示在登录页。
+### 🏗️ 技术栈
 
-唤出方式：
+**后端：**
+- Cloudflare Workers
+- Hono
+- TypeScript
+- Cloudflare D1
+- Cloudflare KV
+- Cloudflare Cron Triggers
 
-1. 连续点击网站标题 3 次
-2. 在非输入状态下连续按 `K` 3 次
+**前端：**
+- React 19
+- Vite
+- Tailwind CSS
+- TypeScript
+- React Router
 
-管理员能力包括：
+**安全：**
+- PBKDF2 密码哈希（Web Crypto API）
+- AES-256-GCM 数据加密
+- 会话管理
+- 速率限制
 
-- 用户管理
-- SMTP / HTTP API 配置
-- 操作日志
-- 发信记录
-- 手动执行一次提醒检查
+### 🚀 快速开始
 
-相关前后端文件：
+**推荐部署顺序：**
+1. 先部署后端 → [完整部署指南](DEPLOYMENT_GUIDE.md)
+2. 再部署前端 → [Git 集成部署](GIT_DEPLOYMENT_GUIDE.md)
+3. 配置邮件服务 → [邮件服务配置](EMAIL_SETUP.md)
 
-- [Login.tsx](/D:/domain-renewal-reminder-main/frontend/src/pages/Login.tsx)
-- [Admin.tsx](/D:/domain-renewal-reminder-main/frontend/src/pages/Admin.tsx)
-- [admin.ts](/D:/domain-renewal-reminder-main/src/routes/admin.ts)
+### 📚 文档
 
-## 邮件能力
+- [完整部署指南](DEPLOYMENT_GUIDE.md) - 后端、数据库和升级说明
+- [Git 集成部署](GIT_DEPLOYMENT_GUIDE.md) - 前端自动部署流程
+- [邮件服务配置](EMAIL_SETUP.md) - HTTP API / SMTP 配置方法
 
-系统当前支持两种发信方式：
+### 🛠️ 本地开发
 
-- HTTP API：如 Resend、SendGrid、Mailgun、自定义 API
-- SMTP：支持 465 / 587，已补标准头、MIME 编码和更完整的 SMTP 握手处理
+#### 前置要求
 
-当前邮件能力包含：
-
-- 注册验证邮件
-- 重发验证邮件
-- 域名到期提醒邮件
-- 发信记录落库
-
-相关文件：
-
-- [email.ts](/D:/domain-renewal-reminder-main/src/services/email.ts)
-- [auth.ts](/D:/domain-renewal-reminder-main/src/routes/auth.ts)
-- [admin.ts](/D:/domain-renewal-reminder-main/src/services/admin.ts)
-
-## 发信记录与手动测试
-
-管理员后台现在支持两项排障能力：
-
-- 查看最近发信记录
-- 立即手动执行一次提醒检查
-
-接口：
-
-- `GET /api/admin/email-logs`
-- `POST /api/admin/reminders/run`
-
-说明：
-
-- 手动执行会走正式提醒筛选逻辑
-- 但手动执行不会增加 `reminders_sent`
-- 发信记录会记录邮件类型、触发来源、收件人、状态和错误信息
-
-## 数据库
-
-当前主要表包括：
-
-- `users`
-- `domains`
-- `admin_logs`
-- `email_send_logs`
-
-Schema 文件：
-
-- [schema.sql](/D:/domain-renewal-reminder-main/schema.sql)
-
-新增发信记录表的迁移文件：
-
-- [0002_email_send_logs.sql](/D:/domain-renewal-reminder-main/migrations/0002_email_send_logs.sql)
-- [0003_domain_status_workflow.sql](/D:/domain-renewal-reminder-main/migrations/0003_domain_status_workflow.sql)
-- [0004_domain_workflow_fields.sql](/D:/domain-renewal-reminder-main/migrations/0004_domain_workflow_fields.sql)
-
-## 部署与迁移
-
-### 环境要求
-
-- Node.js 18+
+- Node.js v18+
 - npm
-- Wrangler 4
+- Wrangler CLI
 
-### 本地安装
+#### 安装依赖
 
 ```bash
 npm install
+
 cd frontend
 npm install
+cd ..
 ```
 
-### 本地开发
-
-后端：
+#### 配置本地环境
 
 ```bash
+# 创建本地 D1 数据库
+wrangler d1 create domain_renewal_db_dev
+
+# 初始化数据库
+wrangler d1 execute domain_renewal_db_dev --file=schema.sql
+
+# 创建本地 KV
+wrangler kv:namespace create "KV" --preview
+```
+
+#### 启动开发服务器
+
+```bash
+# 启动后端
 npm run dev
-```
 
-前端：
-
-```bash
+# 启动前端
 cd frontend
 npm run dev
 ```
 
-### 生产部署
+访问地址：
+- 前端：http://localhost:5173
+- 后端：http://localhost:8787
 
-后端部署：
-
-```bash
-npx wrangler deploy
-```
-
-前端构建：
+#### 运行测试
 
 ```bash
-cd frontend
-npm run build
+npm run type-check
+npm test
+npm run test:coverage
 ```
 
-### 重要：老库升级需要执行迁移
-
-如果你的 D1 数据库不是新建的，而是旧环境升级到当前版本，除了更新代码和重新部署后端，还需要执行发信记录迁移：
-
-```bash
-npx wrangler d1 execute domain_renewal_db --remote --file=migrations/0002_email_send_logs.sql
-npx wrangler d1 execute domain_renewal_db --remote --file=migrations/0003_domain_status_workflow.sql
-```
-
-否则：
-
-- 发信记录功能不可用
-- 管理员后台的邮件记录列表会缺表
-
-## 项目结构
+### 📦 项目结构
 
 ```text
 domain-renewal-reminder/
-├─ src/
-│  ├─ index.ts
-│  ├─ middleware/
-│  ├─ routes/
-│  ├─ services/
-│  ├─ types/
-│  └─ utils/
-├─ frontend/
-│  ├─ src/
-│  │  ├─ api/
-│  │  ├─ assets/
-│  │  ├─ components/
-│  │  ├─ contexts/
-│  │  └─ pages/
-│  └─ public/
-├─ migrations/
-├─ schema.sql
-├─ wrangler.toml
-└─ README.md
+├── src/                      # 后端源代码
+│   ├── index.ts             # 主入口
+│   ├── middleware/          # 中间件
+│   ├── routes/              # API 路由
+│   ├── services/            # 业务逻辑
+│   ├── types/               # TypeScript 类型
+│   └── utils/               # 工具函数
+├── frontend/                # 前端源代码
+│   ├── src/
+│   │   ├── api/             # API 客户端
+│   │   ├── components/      # UI 组件
+│   │   ├── contexts/        # React Context
+│   │   ├── pages/           # 页面组件
+│   │   └── main.tsx         # 前端入口
+│   └── public/              # 静态资源
+├── migrations/              # 数据库迁移文件
+├── schema.sql               # 数据库 Schema
+├── wrangler.toml            # Cloudflare 配置
+├── package.json             # 后端依赖
+└── frontend/package.json    # 前端依赖
 ```
 
-## API 概览
+### 📧 邮件配置
 
-### 认证
+系统支持两种邮件发送方式，可在管理员面板中切换：
 
+#### 方式一：HTTP API（推荐）
+
+支持：
+- Resend
+- SendGrid
+- Mailgun
+- 自定义 HTTP API
+
+**优点：**
+- ✅ 配置简单
+- ✅ 稳定性高
+- ✅ 免费额度适合个人使用
+- ✅ 维护成本低
+
+#### 方式二：SMTP（高级）
+
+支持端口：
+- 465（SSL）
+- 587（TLS）
+- ❌ 25（Cloudflare Workers 不支持）
+
+适合：
+- 企业邮箱
+- 自建邮件服务器
+- 需要使用固定 SMTP 服务商的场景
+
+详细步骤见 [邮件服务配置](EMAIL_SETUP.md)。
+
+### 🔄 续费闭环
+
+当前版本已经支持完整的基础状态流转：
+
+- `active`：提醒中
+- `handled`：已处理
+- `paused`：暂停提醒
+- `abandoned`：已放弃
+
+工作流能力：
+
+- 续费后自动顺延一个使用周期
+- 自动重算下一轮 `expiry_date` 和 `reminder_start_date`
+- 自动清零 `reminders_sent`
+- 记录 `owner`、`status_note`、`processed_at`
+- Reminder cron 只处理 `status = active` 的域名
+
+### 🗃️ 数据库迁移
+
+如果是新建数据库，直接执行：
+
+```bash
+wrangler d1 execute domain_renewal_db --remote --file=schema.sql
+```
+
+如果是旧库升级，请按顺序执行：
+
+```bash
+wrangler d1 execute domain_renewal_db --remote --file=migrations/0002_email_send_logs.sql
+wrangler d1 execute domain_renewal_db --remote --file=migrations/0003_domain_status_workflow.sql
+wrangler d1 execute domain_renewal_db --remote --file=migrations/0004_domain_workflow_fields.sql
+```
+
+升级后 `domains` 表应包含以下字段：
+
+- `status`
+- `status_note`
+- `owner`
+- `processed_at`
+- `last_renewed_at`
+
+### 🔐 安全特性
+
+- **密码安全**：PBKDF2 哈希
+- **数据加密**：AES-256-GCM
+- **会话管理**：安全 token，自动过期
+- **速率限制**：防止暴力破解
+- **邮箱验证**：注册验证与重发验证
+- **访问控制**：用户认证与管理员认证中间件
+- **入口隐藏**：管理员入口默认不直接展示
+
+### 📊 数据库设计
+
+**users 表：**
+- 用户信息
+- 邮箱验证状态
+- 黑名单状态
+
+**domains 表：**
+- 域名基础信息
+- 到期日期和提醒设置
+- 提醒发送记录
+- 状态流转字段
+- 负责人、备注、处理时间
+
+**admin_logs 表：**
+- 管理员操作日志
+
+**email_send_logs 表：**
+- 发信记录
+- 触发来源
+- 失败原因
+
+### 🎯 API 端点
+
+#### 认证
 - `POST /api/auth/register`
 - `POST /api/auth/verify`
 - `POST /api/auth/login`
@@ -214,17 +267,16 @@ domain-renewal-reminder/
 - `GET /api/auth/me`
 - `POST /api/auth/resend-verification`
 
-### 域名
-
+#### 域名管理
 - `POST /api/domains`
+- `POST /api/domains/batch`
 - `GET /api/domains`
 - `GET /api/domains/grouped`
 - `PUT /api/domains/:id`
 - `POST /api/domains/:id/renew`
 - `DELETE /api/domains/:id`
 
-### 管理员
-
+#### 管理员
 - `GET /api/admin/users`
 - `POST /api/admin/users/:id/blacklist`
 - `DELETE /api/admin/users/:id`
@@ -234,45 +286,123 @@ domain-renewal-reminder/
 - `GET /api/admin/email-logs`
 - `POST /api/admin/reminders/run`
 
-## 当前已知但非阻塞的问题
+### 💰 成本估算
 
-- 前端仍有一个 Vite 警告：`frontend/src/api/client.ts` 同时被静态和动态导入
-- README 之外的部分历史文档还没有全部同步到最新功能状态
-- 邮件模板与投递已可用，但如果更换 SMTP 服务商，仍建议再次做真实收件测试
+基于 Cloudflare 免费套餐：
+- **Workers**：100,000 请求/天
+- **D1**：5GB 存储
+- **KV**：100,000 读取/天，1,000 写入/天
+- **Pages**：500 次构建/月
 
-## 建议的运维检查项
+**结论：个人使用或小团队场景基本可免费运行。**
 
-- 确认 `ADMIN_PASSWORD` 与 `ENCRYPTION_KEY` 已配置
-- 确认 D1 / KV 绑定已生效
-- 确认 cron 已部署成功
-- 确认 SMTP 或 HTTP API 发信配置可用
-- 生产升级时确认迁移是否已执行
-- 用真实邮箱验证注册邮件和提醒邮件都能收到
+### 📄 许可证
 
-## Workflow Upgrade Notes
+MIT License
 
-Run these migrations in order when upgrading an existing D1 database:
+### 📞 支持
+
+如果遇到问题：
+1. 查看 [部署指南](DEPLOYMENT_GUIDE.md)
+2. 查看 [邮件配置文档](EMAIL_SETUP.md)
+3. 提交 GitHub Issue
+
+---
+
+## English
+
+### 📖 Introduction
+
+Domain Renewal Reminder Service is a free web application for managing domain renewals, reminder schedules, and email notifications. It helps users avoid accidental domain expiration with automated reminder workflows.
+
+**Core Features:**
+- ✅ User registration, login, and email verification
+- ✅ Domain CRUD and batch import
+- ✅ Automatic expiry and reminder date calculation
+- ✅ Scheduled daily reminder checks
+- ✅ Flexible mail delivery via HTTP API or SMTP
+- ✅ Domain filtering, search, and grouped views
+- ✅ Renewal workflow loop: renewed, handled, paused, abandoned
+- ✅ Automatic rollover to the next renewal cycle
+- ✅ Owner, note, and processed-time tracking
+- ✅ Admin panel for users, SMTP config, email logs, and manual reminder runs
+- ✅ Hidden admin entry
+- ✅ Responsive UI
+- ✅ Built on Cloudflare free-tier friendly services
+
+### 🏗️ Tech Stack
+
+**Backend:**
+- Cloudflare Workers
+- Hono
+- TypeScript
+- Cloudflare D1
+- Cloudflare KV
+- Cloudflare Cron Triggers
+
+**Frontend:**
+- React 19
+- Vite
+- Tailwind CSS
+- TypeScript
+- React Router
+
+### 🚀 Quick Start
+
+- Backend and database setup: [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
+- Frontend deployment: [GIT_DEPLOYMENT_GUIDE.md](GIT_DEPLOYMENT_GUIDE.md)
+- Mail setup: [EMAIL_SETUP.md](EMAIL_SETUP.md)
+
+### 🔄 Renewal Workflow
+
+The current workflow supports:
+
+- `active`
+- `handled`
+- `paused`
+- `abandoned`
+
+Behavior:
+
+- `POST /api/domains/:id/renew` rolls the domain into the next cycle
+- resets `reminders_sent`
+- recalculates `expiry_date` and `reminder_start_date`
+- records `owner`, `status_note`, `processed_at`, and `last_renewed_at`
+- cron reminders only run for `active` domains
+
+### 🗃️ Database Migration
+
+For a fresh database:
 
 ```bash
-npx wrangler d1 execute domain_renewal_db --remote --file=migrations/0002_email_send_logs.sql
-npx wrangler d1 execute domain_renewal_db --remote --file=migrations/0003_domain_status_workflow.sql
-npx wrangler d1 execute domain_renewal_db --remote --file=migrations/0004_domain_workflow_fields.sql
+wrangler d1 execute domain_renewal_db --remote --file=schema.sql
 ```
 
-The `domains` table should include:
+For upgrading an older database:
 
-- `status`
-- `status_note`
-- `owner`
-- `processed_at`
-- `last_renewed_at`
+```bash
+wrangler d1 execute domain_renewal_db --remote --file=migrations/0002_email_send_logs.sql
+wrangler d1 execute domain_renewal_db --remote --file=migrations/0003_domain_status_workflow.sql
+wrangler d1 execute domain_renewal_db --remote --file=migrations/0004_domain_workflow_fields.sql
+```
 
-Current workflow:
+### 📄 License
 
-- `POST /api/domains/:id/renew` advances the domain by one usage period, resets reminder progress, and updates `processed_at` plus `last_renewed_at`
-- `PUT /api/domains/:id` supports `status`, `statusNote`, `owner`, and `processedAt`
-- Reminder cron only sends for domains with `status = 'active'`
+MIT License
 
-## License
+### 📞 Support
 
-MIT
+If you run into issues:
+1. Check [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)
+2. Check [EMAIL_SETUP.md](EMAIL_SETUP.md)
+3. Open a GitHub Issue
+
+---
+
+<div align="center">
+
+Made with Cloudflare Workers
+
+[⬆ Back to Top](#爱自由域名管理--domain-renewal-reminder-service)
+
+</div>
