@@ -681,6 +681,31 @@ pre {
   gap: 12px;
 }
 
+.landing-icon-link {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  border: 1px solid rgba(80, 100, 115, 0.18);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: var(--app-shadow-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #0f1b24;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.landing-icon-link:hover {
+  transform: translateY(-1px);
+  border-color: rgba(14, 179, 240, 0.34);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.landing-icon-link svg {
+  width: 22px;
+  height: 22px;
+}
+
 .landing-hero {
   display: grid;
   gap: 24px;
@@ -1307,11 +1332,7 @@ pre {
   .landing-nav {
     width: 100%;
     display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .landing-nav > :first-child {
-    grid-column: 1 / -1;
+    grid-template-columns: 52px 1fr 1fr;
   }
 
   .landing-title {
@@ -1377,10 +1398,6 @@ pre {
 
   .landing-nav {
     grid-template-columns: 1fr;
-  }
-
-  .landing-nav > :first-child {
-    grid-column: auto;
   }
 }
 
