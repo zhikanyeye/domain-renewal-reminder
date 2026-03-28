@@ -64,6 +64,9 @@ export function Register() {
             <span>已有账户</span>
           </div>
           <div className="button-row">
+            <Link to="/" className="ghost-button">
+              返回首页
+            </Link>
             <Link to="/login" className="secondary-button">
               返回登录
             </Link>

@@ -1,21 +1,6 @@
 import { Link } from 'react-router-dom';
 import { BrandLogo } from '../components/logo';
 
-const highlights = [
-  {
-    title: '到期时间清晰',
-    description: '域名状态和关键日期集中呈现。',
-  },
-  {
-    title: '提醒自动进行',
-    description: '减少遗漏，也减少重复确认。',
-  },
-  {
-    title: '续费流程顺滑',
-    description: '完成续费后自动进入新的周期。',
-  },
-];
-
 const previewRows = [
   '到期时间',
   '提醒状态',
@@ -108,14 +93,14 @@ export function Home() {
         </section>
 
         <section className="landing-section">
-          <div className="landing-feature-grid">
-            {highlights.map((item) => (
-              <article key={item.title} className="liquid-card">
-                <h3>{item.title}</h3>
-                <p>{item.description}</p>
-              </article>
-            ))}
-          </div>
+          <article className="liquid-panel liquid-panel--feature">
+            <div className="liquid-chip liquid-chip--soft">Product highlights</div>
+            <h2 className="landing-feature__title">一个面板，处理域名到期、提醒和续费状态。</h2>
+            <p className="landing-feature__text">
+              到期时间、提醒进度、处理记录和续费周期集中呈现。信息足够直接，流程足够清楚，
+              适合个人长期使用，也适合小团队协作管理。
+            </p>
+          </article>
         </section>
 
         <section className="landing-section">

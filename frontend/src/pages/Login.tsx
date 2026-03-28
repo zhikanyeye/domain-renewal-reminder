@@ -148,6 +148,9 @@ export function Login() {
             <span>其他入口</span>
           </div>
           <div className="button-row">
+            <Link to="/" className="ghost-button">
+              返回首页
+            </Link>
             <Link to="/register" className="secondary-button">
               创建新账户
             </Link>

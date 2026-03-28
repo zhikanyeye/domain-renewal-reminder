@@ -772,6 +772,12 @@ pre {
   color: white;
 }
 
+.liquid-panel--feature {
+  display: grid;
+  gap: 16px;
+  padding: 28px;
+}
+
 .liquid-chip {
   position: relative;
   display: inline-flex;
@@ -1017,6 +1023,23 @@ pre {
   max-width: 66ch;
   color: var(--app-text-subtle);
   line-height: 1.85;
+}
+
+.landing-feature__title {
+  margin: 0;
+  max-width: 18ch;
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  line-height: 1.06;
+  letter-spacing: -0.04em;
+  color: #0f1b24;
+}
+
+.landing-feature__text {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--app-text-subtle);
+  font-size: 1rem;
+  line-height: 1.9;
 }
 
 .landing-feature-grid {
@@ -1348,6 +1371,7 @@ pre {
   .liquid-panel--hero,
   .liquid-panel--aside,
   .liquid-panel--cta,
+  .liquid-panel--feature,
   .liquid-card,
   .workflow-node {
     padding: 20px;
@@ -1372,6 +1396,7 @@ pre {
   }
 
   .landing-section__heading h2,
+  .landing-feature__title,
   .landing-cta__title {
     max-width: none;
   }
