@@ -215,7 +215,7 @@ function DomainCard({ domain, onRenew, onHandle, onStatusChange, onEdit, onDelet
               onClick={() => onStatusChange(domain, 'paused')}
               className="flex-1 rounded-xl bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700 transition-all hover:bg-amber-100"
             >
-              Pause reminders
+              暂停提醒
             </button>
           ) : (
             <button
@@ -223,7 +223,7 @@ function DomainCard({ domain, onRenew, onHandle, onStatusChange, onEdit, onDelet
               onClick={() => onStatusChange(domain, 'active')}
               className="flex-1 rounded-xl bg-teal-50 px-4 py-2.5 text-sm font-semibold text-teal-700 transition-all hover:bg-teal-100"
             >
-              Resume reminders
+              恢复提醒
             </button>
           )}
           {domain.status !== 'abandoned' && (
@@ -232,7 +232,7 @@ function DomainCard({ domain, onRenew, onHandle, onStatusChange, onEdit, onDelet
               onClick={() => onStatusChange(domain, 'abandoned')}
               className="flex-1 rounded-xl bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition-all hover:bg-rose-100"
             >
-              Mark abandoned
+              标记已放弃
             </button>
           )}
           <button
@@ -383,13 +383,13 @@ export function Dashboard() {
 
   const handleChangeStatus = useCallback(async (domain: Domain, status: DomainStatus) => {
     const actionLabels: Record<DomainStatus, string> = {
-      active: 'resume reminders for',
-      paused: 'pause reminders for',
-      handled: 'mark handled for',
-      abandoned: 'mark abandoned for',
+      active: '恢复提醒',
+      paused: '暂停提醒',
+      handled: '标记已处理',
+      abandoned: '标记已放弃',
     };
 
-    if (!window.confirm(`Confirm to ${actionLabels[status]} ${domain.domain_address}?`)) {
+    if (!window.confirm(`确认要将 ${domain.domain_address} 设置为“${actionLabels[status]}”吗？`)) {
       return;
     }
 
@@ -400,18 +400,18 @@ export function Dashboard() {
         await loadDomains();
         setBanner({
           tone: 'success',
-          text: `${domain.domain_address}: status updated to ${status}.`,
+          text: `${domain.domain_address} 状态已更新为“${actionLabels[status]}”。`,
         });
       } else {
         setBanner({
           tone: 'error',
-          text: response.error?.message || 'Status update failed.',
+          text: response.error?.message || '状态更新失败。',
         });
       }
     } catch {
       setBanner({
         tone: 'error',
-        text: 'Network error while updating status.',
+        text: '网络错误，状态更新未完成。',
       });
     }
   }, [loadDomains]);
