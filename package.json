@@ -25,17 +25,17 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20231218.0",
-    "@types/node": "^20.10.6",
-    "@typescript-eslint/eslint-plugin": "^6.17.0",
-    "@typescript-eslint/parser": "^6.17.0",
-    "eslint": "^8.56.0",
-    "fast-check": "^4.5.3",
+    "@cloudflare/workers-types": "^4.20260528.1",
+    "@types/node": "^25.9.1",
+    "@typescript-eslint/eslint-plugin": "^8.60.0",
+    "@typescript-eslint/parser": "^8.60.0",
+    "eslint": "^10.4.0",
+    "fast-check": "^4.8.0",
     "husky": "^9.1.7",
-    "lint-staged": "^16.4.0",
-    "typescript": "^5.3.3",
-    "vitest": "^1.1.0",
-    "wrangler": "^4.75.0"
+    "lint-staged": "^17.0.5",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.7",
+    "wrangler": "^4.95.0"
   },
   "dependencies": {
     "hono": "^3.12.0"
