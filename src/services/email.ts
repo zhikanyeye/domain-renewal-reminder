@@ -456,6 +456,7 @@ export class EmailService {
         };
 
         const readResponse = async (): Promise<string> => {
+          // eslint-disable-next-line no-constant-condition
           while (true) {
             const response = extractSmtpResponse();
             if (response) {

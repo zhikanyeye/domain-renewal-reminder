@@ -12,11 +12,9 @@ paths = [
   '''node_modules/''',
   '''\.wrangler/''',
 ]
-
-[[allowlist.regexes]]
-description = "Placeholder encryption key in .env.example"
-regex = '''0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'''
-
-[[allowlist.regexes]]
-description = "Obvious placeholder values"
-regex = '''(your_[a-z_]+_here|YOUR_[A-Z_]+_HERE|<[A-Z_]+>)'''
+regexes = [
+  # Placeholder encryption key in .env.example
+  '''0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef''',
+  # Obvious placeholder values (your_xxx_here, YOUR_XXX_HERE, <XXX>)
+  '''(your_[a-z_]+_here|YOUR_[A-Z_]+_HERE|<[A-Z_]+>)''',
+]
