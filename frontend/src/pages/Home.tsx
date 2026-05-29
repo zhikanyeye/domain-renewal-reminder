@@ -1,204 +1,170 @@
 import { Link } from 'react-router-dom';
+import {
+  GithubLogoIcon,
+  CloudArrowUpIcon,
+  BellIcon,
+  SparkleIcon,
+  ArrowsClockwiseIcon,
+} from '@phosphor-icons/react';
 import { BrandLogo } from '../components/logo';
 
 const repoUrl = 'https://github.com/zhikanyeye/domain-renewal-reminder';
 
-const keyPoints = [
-  '统一整理域名、注册商、到期日和续费入口',
-  '根据到期周期自动生成提醒并持续跟进',
-  '支持负责人、处理状态和续费结果留痕',
-];
-
 const features = [
   {
-    title: '资产集中管理',
-    description: '把域名、到期时间、续费链接和备注放到一个清晰视图里，减少分散记录。',
+    icon: CloudArrowUpIcon,
+    title: '集中管理',
+    description: '域名、到期时间、续费链接统一视图',
+    tinted: true,
   },
   {
-    title: '自动提醒机制',
-    description: '系统自动计算提醒开始日期和发送节奏，降低人工盯日期的成本。',
+    icon: BellIcon,
+    title: '自动提醒',
+    description: '系统计算提醒节奏，降低人工成本',
+    tinted: false,
   },
   {
-    title: 'CSV / AI 导入',
-    description: '支持批量导入、文字识别和图片识别，先生成草稿再确认入库，更稳妥。',
+    icon: SparkleIcon,
+    title: 'AI 导入',
+    description: '批量导入、文字识别、图片识别',
+    tinted: false,
   },
   {
-    title: '处理状态同步',
-    description: '续费中、已处理、已暂停、已放弃都能在系统内持续同步，方便多人协作。',
+    icon: ArrowsClockwiseIcon,
+    title: '状态同步',
+    description: '续费流程全程可追踪，多人协作',
+    tinted: true,
   },
 ];
-
-const entryPoints = [
-  {
-    title: '新用户开始',
-    description: '首次使用时创建账号，进入自己的域名续费控制台。',
-    actionLabel: '注册账号',
-    to: '/register',
-    variant: 'primary',
-  },
-  {
-    title: '已有用户登录',
-    description: '直接进入控制台，查看提醒任务、处理续费和更新状态。',
-    actionLabel: '进入登录',
-    to: '/login',
-    variant: 'secondary',
-  },
-  {
-    title: '管理员维护',
-    description: '配置邮件服务、查看日志、管理用户，并手动触发提醒检查。',
-    actionLabel: '管理员入口',
-    to: '/admin',
-    variant: 'ghost',
-  },
-] as const;
 
 export function Home() {
   return (
-    <div className="app-shell home-landing">
-      <a href="#home-main-content" className="skip-link">
+    <div className="min-h-[100dvh] bg-zinc-50 dark:bg-zinc-950">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:rounded focus:bg-white focus:px-4 focus:py-2 focus:text-zinc-900 dark:focus:bg-zinc-900 dark:focus:text-zinc-100"
+      >
         跳到主要内容
       </a>
 
-      <header className="app-topbar home-landing__topbar">
-        <div className="home-landing__topbar-inner">
-          <BrandLogo title="爱自由域名管理" subtitle="Domain Renewal Reminder Service" />
-          <nav className="home-landing__nav" aria-label="Homepage navigation">
-            <a href="#product" className="home-landing__nav-link">
-              产品介绍
-            </a>
-            <a href="#features" className="home-landing__nav-link">
+      <header className="sticky top-0 z-40 w-full border-b border-zinc-200/80 bg-white/80 [-webkit-backdrop-filter:blur(8px)_saturate(180%)] backdrop-blur-sm dark:border-zinc-800/80 dark:bg-zinc-950/80">
+        <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4 sm:h-16 sm:px-6">
+          <BrandLogo iconOnly title="爱自由域名管理" />
+
+          <nav className="flex items-center gap-4 sm:gap-8" aria-label="主导航">
+            <a
+              href="#features"
+              className="hidden text-sm text-zinc-600 transition-colors hover:text-zinc-900 sm:inline dark:text-zinc-400 dark:hover:text-zinc-100"
+            >
               主要功能
             </a>
-            <a href={repoUrl} target="_blank" rel="noreferrer" className="home-landing__repo-link">
-              项目原地址
+            <a
+              href={repoUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              aria-label="GitHub 仓库"
+            >
+              <GithubLogoIcon size={20} weight="fill" />
             </a>
-            <Link to="/login" className="secondary-button home-landing__login-button">
+            <Link
+              to="/login"
+              className="rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-900 transition-all hover:border-zinc-400 hover:bg-zinc-50 active:scale-[0.98] sm:px-4 sm:py-2 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
+            >
               登录
             </Link>
           </nav>
         </div>
       </header>
 
-      <main id="home-main-content" className="app-main home-landing__main">
-        <section className="home-landing__hero animate-slideUp" aria-labelledby="hero-title">
-          <div className="home-landing__hero-copy">
-            <p className="home-landing__eyebrow">Domain Renewal Reminder</p>
-            <h1 id="hero-title" className="home-landing__title">
-              简洁地管理域名资产，稳定地推进续费流程
-            </h1>
-            <p className="home-landing__description">
-              面向个人站长和小团队的域名续费管理工具，把产品介绍、核心功能和实际入口收拢在一个清晰首页里。
-            </p>
+      <main id="main">
+        <section className="mx-auto max-w-4xl px-4 pb-12 pt-16 sm:px-6 sm:pb-16 sm:pt-24" aria-labelledby="hero-title">
+          <p className="hero-eyebrow home-anim text-xs font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
+            Domain Renewal Reminder
+          </p>
 
-            <div className="home-landing__cta-row">
-              <Link to="/register" className="primary-button">
-                立即开始
-              </Link>
-              <Link to="/login" className="secondary-button">
-                进入控制台
-              </Link>
-            </div>
+          <h1
+            id="hero-title"
+            className="hero-title home-anim mt-4 text-4xl font-semibold leading-tight tracking-tight text-zinc-900 sm:mt-6 sm:text-5xl dark:text-zinc-50"
+          >
+            别让域名
+            <br />
+            悄悄过期
+          </h1>
 
-            <div className="home-landing__meta-list" aria-label="Product highlights">
-              <span>Cloudflare 部署</span>
-              <span>邮件提醒自动执行</span>
-              <span>支持批量导入与 AI 识别</span>
-            </div>
-          </div>
+          <p className="hero-subtext home-anim mt-4 max-w-xl text-base leading-relaxed text-zinc-600 sm:mt-6 sm:text-lg dark:text-zinc-400">
+            到期前自动提醒，再多域名也不漏
+          </p>
 
-          <aside className="home-landing__hero-panel" aria-label="Product summary">
-            <span className="home-landing__panel-label">产品简介</span>
-            <h2>把“记住续费”变成一个可跟踪的流程</h2>
-            <p>
-              这个系统不是单纯的提醒工具，而是把域名资产、提醒节奏、处理动作和续费结果统一放进同一个控制面板。
-            </p>
-            <ul className="home-landing__point-list">
-              {keyPoints.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </aside>
-        </section>
-
-        <section id="product" className="home-landing__section animate-slideUp" aria-labelledby="product-title">
-          <div className="home-landing__section-heading">
-            <p className="home-landing__section-label">产品介绍</p>
-            <h2 id="product-title">首页只保留用户真正关心的内容</h2>
-          </div>
-
-          <div className="home-landing__intro-card">
-            <div>
-              <h3>这是什么</h3>
-              <p>一个用于域名续费管理的 Web 应用，帮助用户集中管理域名、自动计算提醒节奏，并通过邮件或后台操作完成后续处理。</p>
-            </div>
-            <div>
-              <h3>适合谁用</h3>
-              <p>适合个人项目、工作室和小团队，尤其适合域名较多、容易分散在多个注册商中的场景。</p>
-            </div>
-            <div>
-              <h3>为什么更省心</h3>
-              <p>比表格和日历提醒更完整，因为它把导入、提醒、状态流转和续费留痕放在了一条链路里。</p>
-            </div>
+          <div className="hero-cta home-anim mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:items-center sm:gap-4">
+            <Link
+              to="/register"
+              className="inline-flex items-center justify-center rounded-lg bg-sky-700 px-6 py-3 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-sky-800 hover:shadow-md active:translate-y-0 active:scale-[0.98]"
+            >
+              立即开始
+            </Link>
+            <Link
+              to="/login"
+              className="inline-flex items-center justify-center rounded-lg border border-zinc-300 bg-white px-6 py-3 text-sm font-medium text-zinc-900 transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-400 hover:bg-zinc-50 active:translate-y-0 active:scale-[0.98] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
+            >
+              进入控制台
+            </Link>
           </div>
         </section>
 
-        <section id="features" className="home-landing__section animate-slideUp" aria-labelledby="features-title">
-          <div className="home-landing__section-heading">
-            <p className="home-landing__section-label">主要功能</p>
-            <h2 id="features-title">保留关键能力，不把首页做成说明书</h2>
-          </div>
+        <section
+          id="features"
+          className="mx-auto max-w-4xl px-4 py-16 sm:px-6 sm:py-24"
+          aria-labelledby="features-title"
+        >
+          <h2
+            id="features-title"
+            className="text-center text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl dark:text-zinc-50"
+          >
+            主要功能
+          </h2>
 
-          <div className="home-landing__feature-grid">
-            {features.map((feature) => (
-              <article key={feature.title} className="home-landing__feature-card">
-                <h3>{feature.title}</h3>
-                <p>{feature.description}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="home-landing__section animate-slideUp" aria-labelledby="entry-title">
-          <div className="home-landing__section-heading">
-            <p className="home-landing__section-label">用户入口</p>
-            <h2 id="entry-title">用户使用的 3 个地方，直接放在首页</h2>
-          </div>
-
-          <div className="home-landing__entry-grid">
-            {entryPoints.map((entry, index) => (
-              <article key={entry.title} className="home-landing__entry-card">
-                <div className="home-landing__entry-index" aria-hidden="true">
-                  {index + 1}
-                </div>
-                <h3>{entry.title}</h3>
-                <p>{entry.description}</p>
-                <Link
-                  to={entry.to}
-                  className={
-                    entry.variant === 'primary'
-                      ? 'primary-button'
-                      : entry.variant === 'secondary'
-                        ? 'secondary-button'
-                        : 'ghost-button'
-                  }
+          <div className="home-stagger mt-8 grid gap-4 sm:mt-12 sm:gap-6 md:grid-cols-2">
+            {features.map((feature) => {
+              const Icon = feature.icon;
+              const surfaceClass = feature.tinted
+                ? 'bg-gradient-to-br from-sky-50 to-white dark:from-sky-950/30 dark:to-zinc-900'
+                : 'bg-white dark:bg-zinc-900';
+              return (
+                <article
+                  key={feature.title}
+                  className={`feature-card group rounded-xl border border-zinc-200 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-zinc-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] sm:p-6 dark:border-zinc-800 dark:hover:border-zinc-700 dark:hover:shadow-[0_8px_24px_rgba(0,0,0,0.4)] ${surfaceClass}`}
                 >
-                  {entry.actionLabel}
-                </Link>
-              </article>
-            ))}
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-100 transition-transform duration-300 group-hover:scale-110 group-hover:bg-sky-200 dark:bg-sky-900/40 dark:group-hover:bg-sky-800/50">
+                    <Icon
+                      size={20}
+                      weight="duotone"
+                      className="text-sky-700 dark:text-sky-300"
+                    />
+                  </div>
+                  <h3 className="mt-4 text-base font-semibold text-zinc-900 dark:text-zinc-100">
+                    {feature.title}
+                  </h3>
+                  <p className="mt-2 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                    {feature.description}
+                  </p>
+                </article>
+              );
+            })}
           </div>
         </section>
 
-        <footer className="home-landing__footer">
-          <div>
-            <strong>项目原地址</strong>
-            <a href={repoUrl} target="_blank" rel="noreferrer">
-              {repoUrl}
+        <footer className="border-t border-zinc-200 bg-white py-6 sm:py-8 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="mx-auto flex max-w-4xl items-center justify-between px-4 sm:px-6">
+            <a
+              href={repoUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-2 text-sm text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+            >
+              <GithubLogoIcon size={16} weight="fill" />
+              <span>MIT License</span>
             </a>
-          </div>
-          <div>
-            <strong>默认操作入口</strong>
-            <Link to="/login">登录进入控制台</Link>
           </div>
         </footer>
       </main>
