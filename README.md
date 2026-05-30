@@ -502,6 +502,48 @@ wrangler d1 execute domain_renewal_db --remote --file=migrations/0004_domain_wor
 wrangler d1 execute domain_renewal_db --remote --file=migrations/0005_ai_import_history.sql
 ```
 
+### 🌐 Free Domain Recommendations
+
+Here are some reliable free domain registration platforms:
+
+#### Gname — Free .eu.cc Domains
+
+- [Register](https://gname.vip/tld-eu-cc.html)
+- 3 free .eu.cc domains per person
+- Supports custom NS servers, can be hosted on Cloudflare
+
+#### ZoneABC — Free Subdomains
+
+- [Register](https://zoneabc.net/register?invite=9487af8186fb4ffbac5d347d9a543098) (with invite code)
+- Free subdomain registration service
+- Cloudflare enterprise-level protection
+
+#### DigitalPlat — Free Domain Platform
+
+- [Register](https://dash.domain.digitalplat.org/signup?ref=CXjbm3l0yE) (with referral code)
+- Multiple free domain suffixes available
+- Supports NS server modification
+
+#### DNSHE — Free Domain Registration
+
+- [Register](https://my.dnshe.com/index.php?m=domain_hub&view=tools&invite_code=VAVF68G4N7KB) (with invite code)
+- Chinese-friendly interface
+- Comprehensive DNS resolution features
+
+#### StackRyze — Multi-suffix Free Domains
+
+- [Register](https://domain.stackryze.com/)
+- Supports: `indevs.in`, `sryze.cc`, `ryzedns.org`, `nx.kg`
+- One year free, unlimited renewals
+
+#### VPS8 — Professional DNS Hosting
+
+- [Register](https://vps8.zz.cd)
+- Built-in PowerDNS management system
+- Supports root domain CNAME records (CNAME Flattening)
+
+> Most domains from these platforms support NS server modification to Cloudflare for CDN acceleration and DDoS protection.
+
 ### 📄 License
 
 This project is licensed under the [MIT License](LICENSE).
