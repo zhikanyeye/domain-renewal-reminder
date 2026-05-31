@@ -179,10 +179,10 @@ export function Home() {
               id="features-title"
               className="text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl dark:text-zinc-50"
             >
-              从导入到续费，少一点手动盯梢
+              从导入到续费，状态一眼看清
             </h2>
             <p className="mt-4 text-sm leading-7 text-zinc-600 dark:text-zinc-400">
-              首页不再只是入口，它应该提前说明这套工具如何把域名续费变成一个可追踪的日常流程。
+              批量录入、自动提醒、续费重置、暂停放弃都在同一套流程里完成。
             </p>
           </div>
 
