@@ -34,7 +34,7 @@
 
 - ✅ 用户注册、登录和邮箱验证
 - ✅ 域名管理（添加、编辑、删除、批量导入）
-- ✅ AI 智能导入（支持图片识别和文字解析后确认导入）
+- ✅ AI 智能导入（支持图片识别、文字解析、历史载入/重试/删除）
 - ✅ 自动计算到期日期和提醒开始日期
 - ✅ 定时邮件提醒（每天自动检查）
 - ✅ 灵活的邮件配置（支持 HTTP API 和 SMTP）
@@ -44,7 +44,7 @@
 - ✅ 支持负责人、处理备注、处理时间记录
 - ✅ 管理员面板（用户管理、邮件配置、邮件日志、手动触发提醒）
 - ✅ 隐藏式管理员入口（三击标题或按 `K` 三次唤出）
-- ✅ 响应式设计（支持手机、平板、电脑）
+- ✅ 响应式设计（支持手机、平板、电脑，含空状态插图和暗色模式适配）
 - ✅ 基于 Cloudflare 免费套餐，个人或小团队可长期使用
 
 ### 🏗️ 技术栈
@@ -216,7 +216,7 @@ domain-renewal-reminder/
 - CSV 模板导入
 - 粘贴注册商列表、账单或提醒邮件文字
 - 上传后台截图、账单截图等图片
-- 最近识别历史、成功草稿载入和文字来源失败重试
+- 最近识别历史、成功草稿载入、文字来源失败重试、单条删除和一键清空
 - 常见注册商自动补全续费入口（Cloudflare、GoDaddy、Namecheap、Spaceship、Porkbun）
 
 AI 识别流程采用"先识别、后确认、再入库"的方式：
@@ -224,7 +224,7 @@ AI 识别流程采用"先识别、后确认、再入库"的方式：
 - 后端通过 Cloudflare Worker 调用智谱国际版 `https://api.z.ai/api/paas/v4/chat/completions`
 - 默认视觉模型为 `GLM-4.6V-Flash`
 - 识别结果会先生成可编辑草稿，用户确认后才批量导入
-- 识别历史只保存摘要、草稿和错误信息；图片原始内容不会长期入库
+- 识别历史只保存摘要、草稿和错误信息；图片原始内容不会长期入库，并支持用户自行删除或清空历史
 
 需要配置以下 Worker secrets / vars：
 
@@ -342,6 +342,8 @@ wrangler d1 execute domain_renewal_db --remote --file=migrations/0005_ai_import_
 - `GET /api/domains/ai-history`
 - `POST /api/domains/ai-history/:id/retry`
 - `POST /api/domains/ai-history/:id/mark-imported`
+- `DELETE /api/domains/ai-history/:id`
+- `DELETE /api/domains/ai-history/clear`
 
 #### 管理员
 
@@ -431,6 +433,7 @@ Domain Renewal Reminder Service is a free web application for managing domain re
 
 - ✅ User registration, login, and email verification
 - ✅ Domain CRUD and batch import
+- ✅ AI-assisted import with history load, retry, and delete
 - ✅ Automatic expiry and reminder date calculation
 - ✅ Scheduled daily reminder checks
 - ✅ Flexible mail delivery via HTTP API or SMTP
@@ -440,7 +443,7 @@ Domain Renewal Reminder Service is a free web application for managing domain re
 - ✅ Owner, note, and processed-time tracking
 - ✅ Admin panel for users, SMTP config, email logs, and manual reminder runs
 - ✅ Hidden admin entry
-- ✅ Responsive UI
+- ✅ Responsive UI with illustrated empty states and dark-mode support
 - ✅ Built on Cloudflare free-tier friendly services
 
 ### 🏗️ Tech Stack
